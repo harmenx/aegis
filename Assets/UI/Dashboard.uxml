@@ -1,0 +1,68 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="Dashboard.uss" />
+    <ui:VisualElement name="root" class="root">
+        <ui:VisualElement class="column left">
+            <ui:VisualElement class="panel">
+                <ui:Label text="Forked Projects" class="kicker" />
+                <ui:Label name="forks" text="1,248" class="figure" />
+                <ui:Label text="Last 10 min" class="hint" />
+            </ui:VisualElement>
+            <ui:VisualElement class="panel grow">
+                <ui:Label text="Trending Developers" class="kicker" />
+                <ui:Label name="hot-language" text="TypeScript" class="chip" />
+                <ui:VisualElement name="trending" class="list" />
+            </ui:VisualElement>
+            <ui:Label name="keys" text="click a view to hold it      1–4  same      space  cycle" class="keys" />
+        </ui:VisualElement>
+        <ui:VisualElement class="column center">
+            <ui:VisualElement class="panel header">
+                <ui:VisualElement class="row">
+                    <ui:Label name="stage-title" text="Collaborations Today" class="kicker" />
+                    <ui:VisualElement class="spacer" />
+                    <ui:VisualElement name="stage-toggles" class="toggles">
+                        <ui:Button name="toggle-0" text="Globe" class="toggle" />
+                        <ui:Button name="toggle-1" text="Activity" class="toggle" />
+                        <ui:Button name="toggle-2" text="Scan" class="toggle" />
+                        <ui:Button name="toggle-3" text="Stability" class="toggle" />
+                    </ui:VisualElement>
+                    <ui:Label name="clock" text="" class="hint" />
+                </ui:VisualElement>
+                <ui:Label name="stage-count" text="362" class="figure accent" />
+                <ui:Label text="Last 10 min" class="hint" />
+            </ui:VisualElement>
+            <ui:VisualElement name="stage-hole" class="hole" picking-mode="Ignore" />
+            <ui:VisualElement class="footer">
+                <ui:VisualElement class="panel footer-card">
+                    <ui:Label text="Code Lines Added / Deleted" class="kicker" />
+                    <ui:VisualElement class="row baseline">
+                        <ui:Label name="lines-added" text="2,841,103" class="figure lines" />
+                        <ui:Label name="lines-deleted" text="−186,420" class="deleted" />
+                    </ui:VisualElement>
+                    <ui:Label text="Min          Hour          Day          Week" class="hint" />
+                </ui:VisualElement>
+                <ui:VisualElement class="panel footer-card">
+                    <ui:Label text="Contribution Graph" class="kicker" />
+                    <ui:VisualElement name="contrib" class="contrib" />
+                    <ui:Label text="1        2        3        4        5        6" class="hint" />
+                </ui:VisualElement>
+                <ui:VisualElement class="panel footer-card wide">
+                    <ui:Label text="Users Reviewing &amp; Commenting" class="kicker" />
+                    <ui:Label name="review-count" text="1,840" class="figure" />
+                    <ui:Label text="Last 10 min" class="hint" />
+                    <ui:VisualElement name="reviewers" class="reviewers" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement class="column right">
+            <ui:VisualElement class="panel grow">
+                <ui:VisualElement class="row">
+                    <ui:Label text="Data Stream" class="kicker" />
+                    <ui:VisualElement class="spacer" />
+                    <ui:Label name="stream-clock" text="Real-Time" class="hint" />
+                </ui:VisualElement>
+                <ui:VisualElement name="stream" class="stream" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="vignette" class="vignette" picking-mode="Ignore" />
+    </ui:VisualElement>
+</ui:UXML>
