@@ -63,6 +63,7 @@ namespace Gitmos.Editor
             var systems = new GameObject("Systems");
             systems.AddComponent<EventSimulator>();
             systems.AddComponent<GitHubEventsClient>();
+            systems.AddComponent<PointsFeed>();
             var metronome = systems.AddComponent<Metronome>();
             systems.AddComponent<PlaybackVerifier>();
 

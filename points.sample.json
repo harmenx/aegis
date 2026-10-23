@@ -1,0 +1,46 @@
+{
+  "points": [
+    {
+      "id": "sf-tyo",
+      "label": "warehouse-west",
+      "series": "shipments",
+      "category": "alert",
+      "place": "San Francisco",
+      "latitude": 37.77,
+      "longitude": -122.42,
+      "hasTarget": true,
+      "targetPlace": "Tokyo",
+      "targetLatitude": 35.68,
+      "targetLongitude": 139.69,
+      "value": 128
+    },
+    {
+      "id": "lon-lagos",
+      "label": "desk-14",
+      "series": "reviews",
+      "category": "resolve",
+      "place": "London",
+      "latitude": 51.51,
+      "longitude": -0.13,
+      "hasTarget": true,
+      "targetPlace": "Lagos",
+      "targetLatitude": 6.52,
+      "targetLongitude": 3.38,
+      "value": 42
+    },
+    {
+      "id": "ber-syd",
+      "label": "node-berlin",
+      "series": "sensors",
+      "category": "reading",
+      "place": "Berlin",
+      "latitude": 52.52,
+      "longitude": 13.4,
+      "hasTarget": true,
+      "targetPlace": "Sydney",
+      "targetLatitude": -33.87,
+      "targetLongitude": 151.21,
+      "value": 80
+    }
+  ]
+}
