@@ -77,6 +77,7 @@ namespace Gitmos
         readonly List<SprayFiber> spray = new List<SprayFiber>(28);
         readonly List<Fan> fans = new List<Fan>(12);
         readonly List<Callout> callouts = new List<Callout>(6);
+        readonly List<Label> calloutLabels = new List<Label>(6);
         readonly float[] flash = new float[64];
         Vector3[] cityLights = System.Array.Empty<Vector3>();
         float[] cityLightSizes = System.Array.Empty<float>();
@@ -632,24 +633,39 @@ namespace Gitmos
         {
             if (string.IsNullOrEmpty(name))
                 return;
+            string label = name.ToLowerInvariant();
             for (int i = 0; i < callouts.Count; i++)
             {
-                if (callouts[i].Name == name)
-                {
-                    callouts[i].Age = 0f;
-                    callouts[i].Direction = direction;
-                    return;
-                }
+                if (callouts[i].Name != label)
+                    continue;
+                callouts[i].Direction = direction;
+                if (callouts[i].Age > 5.4f)
+                    callouts[i].Age = 5.4f;
+                return;
             }
-            if (callouts.Count >= 5)
-                callouts.RemoveAt(callouts.Count - 1);
-            callouts.Insert(0, new Callout { Name = name.ToLowerInvariant(), Direction = direction, Age = 0f });
+            if (callouts.Count >= 4)
+            {
+                int oldest = 0;
+                for (int i = 1; i < callouts.Count; i++)
+                {
+                    if (callouts[i].Age > callouts[oldest].Age)
+                        oldest = i;
+                }
+                if (callouts[oldest].Age < 2.6f)
+                    return;
+                callouts.RemoveAt(oldest);
+            }
+            callouts.Insert(0, new Callout { Name = label, Direction = direction, Age = 0f });
         }
 
         void DrawCallouts(Camera cam)
         {
             if (callouts.Count == 0)
+            {
+                for (int i = 0; i < calloutLabels.Count; i++)
+                    calloutLabels[i].style.display = DisplayStyle.None;
                 return;
+            }
             DashboardController dashboard = FindFirstObjectByType<DashboardController>();
             if (dashboard == null)
                 return;
@@ -670,30 +686,45 @@ namespace Gitmos
                 layer.style.bottom = 0;
                 root.Add(layer);
             }
-            layer.Clear();
             if (Alpha < 0.4f)
+            {
+                for (int i = 0; i < calloutLabels.Count; i++)
+                    calloutLabels[i].style.display = DisplayStyle.None;
                 return;
+            }
+            int shown = 0;
+            Vector3 towardCamera = (cam.transform.position - transform.position).normalized;
             for (int i = 0; i < callouts.Count; i++)
             {
                 Callout callout = callouts[i];
                 Vector3 world = transform.TransformPoint(callout.Direction * (Radius * 1.22f));
                 Vector3 screen = cam.WorldToScreenPoint(world);
-                if (screen.z < 0.1f)
+                float facing = Vector3.Dot(callout.Direction, towardCamera);
+                float onFace = Mathf.SmoothStep(-0.02f, 0.34f, facing);
+                float fade = Mathf.Clamp01(callout.Age / 0.45f) * Mathf.Clamp01((7f - callout.Age) / 1.4f) * onFace;
+                if (screen.z < 0.1f || fade < 0.04f)
                     continue;
-                if (Vector3.Dot(callout.Direction, (cam.transform.position - transform.position).normalized) < 0.12f)
-                    continue;
+                Label label = shown < calloutLabels.Count ? calloutLabels[shown] : null;
+                if (label == null)
+                {
+                    label = new Label();
+                    label.pickingMode = PickingMode.Ignore;
+                    label.style.position = Position.Absolute;
+                    label.style.fontSize = 11;
+                    label.style.unityFontStyleAndWeight = FontStyle.Normal;
+                    layer.Add(label);
+                    calloutLabels.Add(label);
+                }
                 Vector2 panel = RuntimePanelUtils.ScreenToPanel(root.panel, screen);
-                float fade = Mathf.Clamp01(callout.Age / 0.25f) * Mathf.Clamp01((7f - callout.Age) / 1.2f);
-                var label = new Label(callout.Name);
-                label.pickingMode = PickingMode.Ignore;
-                label.style.position = Position.Absolute;
+                label.text = callout.Name;
+                label.style.display = DisplayStyle.Flex;
                 label.style.left = panel.x + 6f;
                 label.style.top = panel.y - 8f;
-                label.style.fontSize = 11;
-                label.style.color = new Color(0.78f, 0.86f, 0.94f, fade * Alpha);
-                label.style.unityFontStyleAndWeight = FontStyle.Normal;
-                layer.Add(label);
+                label.style.color = new Color(1f, 1f, 1f, fade * Alpha);
+                shown++;
             }
+            for (int i = shown; i < calloutLabels.Count; i++)
+                calloutLabels[i].style.display = DisplayStyle.None;
         }
 
         static Texture2D LoadEarth()

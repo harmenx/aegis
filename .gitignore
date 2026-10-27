@@ -41,3 +41,6 @@ playback-report.txt
 playback-*.png
 *.log
 .video-frames/
+gif-frames/
+gif-record.flag
+gif-record.done

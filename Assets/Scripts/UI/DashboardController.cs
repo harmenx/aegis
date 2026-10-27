@@ -394,7 +394,7 @@ namespace Gitmos
 
                 var name = new Label(Trim(reviewer.Name, 8));
                 name.style.fontSize = 8;
-                name.style.color = new Color(0.78f, 0.84f, 0.9f);
+                name.style.color = new Color(0.94f, 0.96f, 0.99f);
                 name.style.unityTextAlign = TextAnchor.UpperCenter;
                 name.style.whiteSpace = WhiteSpace.Normal;
                 ApplyMono(name);
@@ -428,13 +428,13 @@ namespace Gitmos
             if (!string.IsNullOrEmpty(gitEvent.Category) && !string.IsNullOrEmpty(gitEvent.Actor))
                 subject = string.IsNullOrEmpty(gitEvent.Repo) ? gitEvent.Actor : gitEvent.Actor + "  " + gitEvent.Repo;
             var builder = new StringBuilder(160);
-            builder.Append("<color=#6d7c90>");
+            builder.Append("<color=#c5d2e2>");
             builder.Append(stamp);
             builder.Append("</color>  <color=#");
             builder.Append(hex);
             builder.Append(">");
             builder.Append(kind);
-            builder.Append("</color>  <color=#d5deea>");
+            builder.Append("</color>  <color=#f4f7fb>");
             builder.Append(subject);
             builder.Append("</color>");
             return builder.ToString();
@@ -555,7 +555,7 @@ namespace Gitmos
                     float dx = (x - center) / center;
                     float dy = (y - center) / center;
                     float d = Mathf.Sqrt(dx * dx * 0.85f + dy * dy);
-                    float alpha = Mathf.SmoothStep(0.55f, 1.25f, d) * 0.78f;
+                    float alpha = Mathf.SmoothStep(0.78f, 1.4f, d) * 0.28f;
                     pixels[y * size + x] = new Color32(0, 0, 0, (byte)(alpha * 255f));
                 }
             }

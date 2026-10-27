@@ -2,7 +2,7 @@
 
 A real-time lobby you can drive with your own points. Each point can light a city, draw an arc, raise the activity bars, and land in the stream.
 
-![Aegis lobby](docs/preview.png)
+![Aegis lobby](docs/preview.gif)
 
 Unity 6.6 (`6000.6.6f1`). Open the project and press Play on `Assets/Scenes/Lobby.unity`.
 
