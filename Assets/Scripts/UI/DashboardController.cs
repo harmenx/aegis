@@ -51,7 +51,22 @@ namespace Gitmos
         int stageIndex;
         int filledStreamLines;
         float refresh;
-        float columnShift;
+        float shownForks;
+        float shownStage;
+        float shownLines;
+        float shownDeleted;
+        float shownReviews;
+        float streamSlide;
+        float contribScroll;
+        float stageReveal = 1f;
+        bool stageRevealOut;
+        string stageRevealTitle = "";
+        string trendingKey = "";
+        string reviewerKey = "";
+        readonly Queue<string> streamQueue = new Queue<string>();
+        readonly List<VisualElement> fading = new List<VisualElement>();
+        readonly HashSet<string> knownTrend = new HashSet<string>();
+        readonly HashSet<string> knownReview = new HashSet<string>();
         string dominantLanguage = "TypeScript";
 
         class ActorStat
@@ -218,16 +233,13 @@ namespace Gitmos
 
         void Update()
         {
-            refresh += Time.deltaTime;
-            columnShift += Time.deltaTime;
-            if (columns != null && columnShift > 0.85f)
-            {
-                columnShift = 0f;
-                for (int i = 0; i < columns.Length - 1; i++)
-                    columns[i] = columns[i + 1] * 0.99f;
-                columns[columns.Length - 1] = 0.18f;
-                PaintContrib(false);
-            }
+            float dt = Time.deltaTime;
+            refresh += dt;
+            TickNumbers(dt);
+            TickStage(dt);
+            TickStream(dt);
+            TickFades(dt);
+            TickContrib(dt);
 
             if (clock != null && refresh > 0.25f)
             {
@@ -237,20 +249,149 @@ namespace Gitmos
                     streamClock.text = now;
             }
 
-            if (refresh > 0.3f)
+            if (refresh > 0.35f)
             {
                 refresh = 0f;
-                RefreshNumbers();
+                if (hotLanguage != null)
+                    hotLanguage.text = dominantLanguage;
                 RebuildTrending();
                 RebuildReviewers();
             }
         }
 
+        void TickNumbers(float dt)
+        {
+            shownForks = Approach(shownForks, forks, dt);
+            shownStage = Approach(shownStage, StageTarget(), dt);
+            shownLines = Approach(shownLines, linesPlus, dt);
+            shownDeleted = Approach(shownDeleted, linesMinus, dt);
+            shownReviews = Approach(shownReviews, reviews, dt);
+            if (forksLabel != null)
+                forksLabel.text = Mathf.RoundToInt(shownForks).ToString("N0");
+            if (stageCount != null)
+                stageCount.text = Mathf.RoundToInt(shownStage).ToString("N0");
+            if (linesAdded != null)
+                linesAdded.text = Compact(Mathf.RoundToInt(shownLines));
+            if (linesDeleted != null)
+                linesDeleted.text = "−" + Compact(Mathf.RoundToInt(shownDeleted));
+            if (reviewCount != null)
+                reviewCount.text = Mathf.RoundToInt(shownReviews).ToString("N0");
+        }
+
+        static float Approach(float shown, float target, float dt)
+        {
+            float delta = Mathf.Abs(target - shown);
+            float step = Mathf.Max(12f, delta * 5.5f) * dt;
+            return Mathf.MoveTowards(shown, target, step);
+        }
+
+        int StageTarget()
+        {
+            if (stageIndex == 1 || stageIndex == 2)
+                return activity;
+            if (stageIndex == 3)
+                return resolved;
+            return collaborations;
+        }
+
+        void TickStage(float dt)
+        {
+            if (!stageRevealOut && stageReveal >= 1f)
+                return;
+            if (stageRevealOut)
+            {
+                stageReveal = Mathf.Max(0f, stageReveal - dt / 0.22f);
+                if (stageReveal <= 0f && stageTitle != null)
+                {
+                    stageTitle.text = stageRevealTitle;
+                    stageRevealOut = false;
+                }
+            }
+            else
+            {
+                stageReveal = Mathf.Min(1f, stageReveal + dt / 0.32f);
+            }
+            float eased = Mathf.SmoothStep(0f, 1f, stageReveal);
+            if (stageTitle != null)
+            {
+                stageTitle.style.opacity = eased;
+                stageTitle.style.translate = new Translate(0, (1f - eased) * 6f);
+            }
+            if (stageCount != null)
+            {
+                stageCount.style.opacity = eased;
+                stageCount.style.translate = new Translate(0, (1f - eased) * 10f);
+            }
+        }
+
+        void TickStream(float dt)
+        {
+            streamSlide = Mathf.MoveTowards(streamSlide, 0f, dt / 0.24f);
+            if (stream != null)
+                stream.style.translate = new Translate(0, -streamSlide * 14f);
+            if (streamLabels != null && streamLabels.Length > 0 && streamLabels[0] != null)
+                streamLabels[0].style.opacity = Mathf.Clamp01(1f - streamSlide * 0.75f);
+            if (streamSlide > 0.05f || streamQueue.Count == 0 || streamLabels == null)
+                return;
+
+            int burst = streamQueue.Count > 8 ? 2 : 1;
+            for (int n = 0; n < burst && streamQueue.Count > 0; n++)
+            {
+                string line = streamQueue.Dequeue();
+                for (int i = streamLabels.Length - 1; i > 0; i--)
+                {
+                    streamLabels[i].text = streamLabels[i - 1].text;
+                    streamLabels[i].style.display = streamLabels[i - 1].style.display;
+                    streamLabels[i].style.opacity = 1f;
+                }
+                streamLabels[0].text = line;
+                streamLabels[0].style.display = DisplayStyle.Flex;
+                streamLabels[0].style.opacity = 0f;
+                filledStreamLines = Mathf.Min(streamLabels.Length, filledStreamLines + 1);
+            }
+            streamSlide = 1f;
+        }
+
+        void TickFades(float dt)
+        {
+            for (int i = fading.Count - 1; i >= 0; i--)
+            {
+                VisualElement element = fading[i];
+                if (element == null || element.panel == null)
+                {
+                    fading.RemoveAt(i);
+                    continue;
+                }
+                float next = Mathf.MoveTowards(element.style.opacity.value, 1f, dt / 0.28f);
+                element.style.opacity = next;
+                if (next >= 0.99f)
+                    fading.RemoveAt(i);
+            }
+        }
+
+        void TickContrib(float dt)
+        {
+            if (columns == null)
+                return;
+            contribScroll += dt * 0.28f;
+            if (contribScroll >= 1f)
+            {
+                contribScroll -= 1f;
+                for (int i = 0; i < columns.Length - 1; i++)
+                    columns[i] = columns[i + 1] * 0.992f;
+                columns[columns.Length - 1] = 0.16f;
+            }
+            PaintContrib(false);
+        }
+
         public void SetStage(int index, string title)
         {
             stageIndex = index;
-            if (stageTitle != null && stageTitle.text != title)
-                stageTitle.text = title;
+            if (stageTitle != null && stageTitle.text != title && stageRevealTitle != title)
+            {
+                stageRevealTitle = title;
+                stageRevealOut = true;
+            }
             for (int i = 0; i < toggles.Length; i++)
             {
                 if (toggles[i] == null)
@@ -301,25 +442,8 @@ namespace Gitmos
 
         void RefreshNumbers()
         {
-            if (forksLabel != null)
-                forksLabel.text = forks.ToString("N0");
-            if (linesAdded != null)
-                linesAdded.text = Compact(linesPlus);
-            if (linesDeleted != null)
-                linesDeleted.text = "−" + Compact(linesMinus);
-            if (reviewCount != null)
-                reviewCount.text = reviews.ToString("N0");
             if (hotLanguage != null)
                 hotLanguage.text = dominantLanguage;
-            if (stageCount == null)
-                return;
-
-            int shown = collaborations;
-            if (stageIndex == 1 || stageIndex == 2)
-                shown = activity;
-            else if (stageIndex == 3)
-                shown = resolved;
-            stageCount.text = shown.ToString("N0");
         }
 
         void RebuildTrending()
@@ -335,8 +459,17 @@ namespace Gitmos
             if (ranking.Count > 0 && !string.IsNullOrEmpty(ranking[0].Language))
                 dominantLanguage = ranking[0].Language;
 
+            var key = new StringBuilder();
+            int listed = Mathf.Min(8, ranking.Count);
+            for (int i = 0; i < listed; i++)
+                key.Append(ranking[i].Name).Append('|');
+            string nextKey = key.ToString();
+            if (nextKey == trendingKey)
+                return;
+            trendingKey = nextKey;
+
             trending.Clear();
-            int count = Mathf.Min(8, ranking.Count);
+            int count = listed;
             for (int i = 0; i < count; i++)
             {
                 ActorStat stat = ranking[i];
@@ -349,6 +482,8 @@ namespace Gitmos
                 name.AddToClassList("trend-name");
                 ApplyMono(name);
                 row.Add(name);
+                if (knownTrend.Add(stat.Name))
+                    BeginFade(row);
                 trending.Add(row);
             }
         }
@@ -372,8 +507,17 @@ namespace Gitmos
         {
             if (reviewers == null)
                 return;
+            var key = new StringBuilder();
+            int listed = Mathf.Min(12, recentReviews.Count);
+            for (int i = 0; i < listed; i++)
+                key.Append(recentReviews[i].Name).Append('|');
+            string nextKey = key.ToString();
+            if (nextKey == reviewerKey)
+                return;
+            reviewerKey = nextKey;
+
             reviewers.Clear();
-            int count = Mathf.Min(12, recentReviews.Count);
+            int count = listed;
             for (int i = 0; i < count; i++)
             {
                 Reviewer reviewer = recentReviews[i];
@@ -386,6 +530,8 @@ namespace Gitmos
                 name.AddToClassList("reviewer-name");
                 ApplyMono(name);
                 column.Add(name);
+                if (knownReview.Add(reviewer.Name))
+                    BeginFade(column);
                 reviewers.Add(column);
             }
         }
@@ -394,14 +540,15 @@ namespace Gitmos
         {
             if (streamLabels == null)
                 return;
-            for (int i = streamLabels.Length - 1; i > 0; i--)
-            {
-                streamLabels[i].text = streamLabels[i - 1].text;
-                streamLabels[i].style.display = streamLabels[i - 1].style.display;
-            }
-            streamLabels[0].text = Format(gitEvent);
-            streamLabels[0].style.display = DisplayStyle.Flex;
-            filledStreamLines = Mathf.Min(streamLabels.Length, filledStreamLines + 1);
+            streamQueue.Enqueue(Format(gitEvent));
+            while (streamQueue.Count > 24)
+                streamQueue.Dequeue();
+        }
+
+        void BeginFade(VisualElement element)
+        {
+            element.style.opacity = 0f;
+            fading.Add(element);
         }
 
         static string Format(GitEvent gitEvent)
@@ -452,7 +599,9 @@ namespace Gitmos
             var pixels = new Color32[width * height];
             for (int col = 0; col < cols; col++)
             {
-                float level = columns[Mathf.Min(col, columns.Length - 1)];
+                    int slot = Mathf.Min(col, columns.Length - 1);
+                    int next = Mathf.Min(slot + 1, columns.Length - 1);
+                    float level = Mathf.Lerp(columns[slot], columns[next], contribScroll);
                 for (int row = 0; row < rows; row++)
                 {
                     float noise = CellNoise(col, row);
