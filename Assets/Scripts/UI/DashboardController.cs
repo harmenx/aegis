@@ -113,6 +113,8 @@ namespace Gitmos
                 root = document.rootVisualElement;
 
             root.pickingMode = PickingMode.Ignore;
+            if (monoFont != null)
+                root.style.unityFontDefinition = FontDefinition.FromFont(monoFont);
             forksLabel = root.Q<Label>("forks");
             stageTitle = root.Q<Label>("stage-title");
             stageCount = root.Q<Label>("stage-count");
@@ -394,7 +396,7 @@ namespace Gitmos
 
                 var name = new Label(Trim(reviewer.Name, 8));
                 name.style.fontSize = 8;
-                name.style.color = new Color(0.94f, 0.96f, 0.99f);
+                name.style.color = new Color(0.78f, 0.86f, 0.94f);
                 name.style.unityTextAlign = TextAnchor.UpperCenter;
                 name.style.whiteSpace = WhiteSpace.Normal;
                 ApplyMono(name);
@@ -428,13 +430,13 @@ namespace Gitmos
             if (!string.IsNullOrEmpty(gitEvent.Category) && !string.IsNullOrEmpty(gitEvent.Actor))
                 subject = string.IsNullOrEmpty(gitEvent.Repo) ? gitEvent.Actor : gitEvent.Actor + "  " + gitEvent.Repo;
             var builder = new StringBuilder(160);
-            builder.Append("<color=#c5d2e2>");
+            builder.Append("<color=#7f8c9c>");
             builder.Append(stamp);
             builder.Append("</color>  <color=#");
             builder.Append(hex);
             builder.Append(">");
             builder.Append(kind);
-            builder.Append("</color>  <color=#f4f7fb>");
+            builder.Append("</color>  <color=#d7dee8>");
             builder.Append(subject);
             builder.Append("</color>");
             return builder.ToString();
