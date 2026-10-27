@@ -134,7 +134,7 @@ namespace Gitmos
             if (hole != null)
                 hole.pickingMode = PickingMode.Ignore;
 
-            columns = new float[28];
+            columns = new float[40];
             for (int i = 0; i < columns.Length; i++)
             {
                 float t = i / (float)(columns.Length - 1);
@@ -144,7 +144,7 @@ namespace Gitmos
 
             if (stream != null)
             {
-                streamLabels = new Label[20];
+                streamLabels = new Label[32];
                 for (int i = 0; i < streamLabels.Length; i++)
                 {
                     var label = new Label();
@@ -157,7 +157,7 @@ namespace Gitmos
                 }
             }
 
-            contribTexture = new Texture2D(224, 48, TextureFormat.RGBA32, false)
+            contribTexture = new Texture2D(320, 36, TextureFormat.RGBA32, false)
             {
                 filterMode = FilterMode.Point,
                 wrapMode = TextureWrapMode.Clamp
@@ -197,7 +197,7 @@ namespace Gitmos
                     Repo = ShortRepo(gitEvent.Repo),
                     Color = Palette.ForLanguage(gitEvent.Language)
                 });
-            if (recentReviews.Count > 12)
+            if (recentReviews.Count > 16)
                 recentReviews.RemoveAt(recentReviews.Count - 1);
             }
 
@@ -304,9 +304,9 @@ namespace Gitmos
             if (forksLabel != null)
                 forksLabel.text = forks.ToString("N0");
             if (linesAdded != null)
-                linesAdded.text = linesPlus.ToString("N0");
+                linesAdded.text = Compact(linesPlus);
             if (linesDeleted != null)
-                linesDeleted.text = "−" + linesMinus.ToString("N0");
+                linesDeleted.text = "−" + Compact(linesMinus);
             if (reviewCount != null)
                 reviewCount.text = reviews.ToString("N0");
             if (hotLanguage != null)
@@ -343,30 +343,29 @@ namespace Gitmos
                 var row = new VisualElement();
                 row.AddToClassList("trend-row");
                 row.pickingMode = PickingMode.Ignore;
+                row.Add(Avatar(stat.Name, Palette.ForLanguage(stat.Language), "avatar"));
 
-                var index = new Label((i + 1).ToString());
-                index.AddToClassList("trend-index");
-                ApplyMono(index);
-
-                var dot = new VisualElement();
-                dot.AddToClassList("trend-dot");
-                dot.style.backgroundColor = Palette.ForLanguage(stat.Language);
-                dot.pickingMode = PickingMode.Ignore;
-
-                var name = new Label(Trim(stat.Name, 14));
+                var name = new Label(Trim(stat.Name, 16));
                 name.AddToClassList("trend-name");
                 ApplyMono(name);
-
-                var repo = new Label(Trim(stat.Repo, 18));
-                repo.AddToClassList("trend-repo");
-                ApplyMono(repo);
-
-                row.Add(index);
-                row.Add(dot);
                 row.Add(name);
-                row.Add(repo);
                 trending.Add(row);
             }
+        }
+
+        VisualElement Avatar(string name, Color color, string avatarClass)
+        {
+            var avatar = new VisualElement();
+            avatar.AddToClassList(avatarClass);
+            avatar.style.backgroundColor = color;
+            avatar.pickingMode = PickingMode.Ignore;
+            string initial = string.IsNullOrEmpty(name) ? "?" : name.Substring(0, 1).ToUpperInvariant();
+            var letter = new Label(initial);
+            letter.AddToClassList("avatar-letter");
+            letter.pickingMode = PickingMode.Ignore;
+            ApplyMono(letter);
+            avatar.Add(letter);
+            return avatar;
         }
 
         void RebuildReviewers()
@@ -374,34 +373,18 @@ namespace Gitmos
             if (reviewers == null)
                 return;
             reviewers.Clear();
-            for (int i = 0; i < recentReviews.Count; i++)
+            int count = Mathf.Min(12, recentReviews.Count);
+            for (int i = 0; i < count; i++)
             {
                 Reviewer reviewer = recentReviews[i];
                 var column = new VisualElement();
-                column.style.alignItems = Align.Center;
-                column.style.marginRight = 4;
-                column.style.width = 44;
+                column.AddToClassList("reviewer");
                 column.pickingMode = PickingMode.Ignore;
+                column.Add(Avatar(reviewer.Name, reviewer.Color, "reviewer-avatar"));
 
-                var dot = new VisualElement();
-                dot.style.width = 12;
-                dot.style.height = 12;
-                dot.style.borderTopLeftRadius = 6;
-                dot.style.borderTopRightRadius = 6;
-                dot.style.borderBottomLeftRadius = 6;
-                dot.style.borderBottomRightRadius = 6;
-                dot.style.backgroundColor = reviewer.Color;
-                dot.style.marginBottom = 4;
-                dot.pickingMode = PickingMode.Ignore;
-
-                var name = new Label(Trim(reviewer.Name, 8));
-                name.style.fontSize = 8;
-                name.style.color = new Color(0.78f, 0.86f, 0.94f);
-                name.style.unityTextAlign = TextAnchor.UpperCenter;
-                name.style.whiteSpace = WhiteSpace.Normal;
+                var name = new Label(Trim(reviewer.Name, 7));
+                name.AddToClassList("reviewer-name");
                 ApplyMono(name);
-
-                column.Add(dot);
                 column.Add(name);
                 reviewers.Add(column);
             }
@@ -423,23 +406,24 @@ namespace Gitmos
 
         static string Format(GitEvent gitEvent)
         {
-            string stamp = gitEvent.Time.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.000Z");
-            string hex = ColorUtility.ToHtmlStringRGB(Palette.For(gitEvent));
             string kind = string.IsNullOrEmpty(gitEvent.Category) ? TypeLabel(gitEvent.Type) : gitEvent.Category;
-            string subject = gitEvent.Repo;
-            if (!string.IsNullOrEmpty(gitEvent.Category) && !string.IsNullOrEmpty(gitEvent.Actor))
-                subject = string.IsNullOrEmpty(gitEvent.Repo) ? gitEvent.Actor : gitEvent.Actor + "  " + gitEvent.Repo;
-            var builder = new StringBuilder(160);
-            builder.Append("<color=#7f8c9c>");
-            builder.Append(stamp);
-            builder.Append("</color>  <color=#");
-            builder.Append(hex);
-            builder.Append(">");
-            builder.Append(kind);
-            builder.Append("</color>  <color=#d7dee8>");
-            builder.Append(subject);
-            builder.Append("</color>");
-            return builder.ToString();
+            string subject = string.IsNullOrEmpty(gitEvent.Repo) ? gitEvent.Actor : gitEvent.Repo;
+            string hex = gitEvent.Type == GitEventType.Delete ? "ff5d6c" : "39e58a";
+            if (gitEvent.Type != GitEventType.Delete && gitEvent.Type != GitEventType.Push
+                && gitEvent.Type != GitEventType.Create && gitEvent.Type != GitEventType.Merge)
+                hex = "d5dde6";
+            if (gitEvent.Tint.a > 0.01f)
+                hex = ColorUtility.ToHtmlStringRGB(gitEvent.Tint);
+            return "<color=#" + hex + ">" + kind + "  " + subject + "</color>";
+        }
+
+        static string Compact(int value)
+        {
+            if (value >= 1000000000)
+                return (value / 1000000).ToString("N0") + "m";
+            if (value >= 1000000)
+                return (value / 1000).ToString("N0") + "k";
+            return value.ToString("N0");
         }
 
         static string TypeLabel(GitEventType type)
@@ -450,9 +434,9 @@ namespace Gitmos
                 case GitEventType.PullRequest: return "PullRequest";
                 case GitEventType.Fork: return "ForkEvent";
                 case GitEventType.Create: return "CreateEvent";
-                case GitEventType.Merge: return "MergeEvent";
+                case GitEventType.Merge: return "PullRequestMerge";
                 case GitEventType.Delete: return "DeleteEvent";
-                case GitEventType.Review: return "Review";
+                case GitEventType.Review: return "PullRequestReview";
                 default: return type.ToString();
             }
         }
@@ -461,10 +445,10 @@ namespace Gitmos
         {
             if (contribTexture == null || columns == null)
                 return;
-            const int width = 224;
-            const int height = 48;
-            const int cols = 28;
-            const int rows = 6;
+            const int width = 320;
+            const int height = 36;
+            const int cols = 40;
+            const int rows = 7;
             var pixels = new Color32[width * height];
             for (int col = 0; col < cols; col++)
             {
@@ -475,17 +459,17 @@ namespace Gitmos
                     if (noise > 0.2f + level * 0.32f)
                         continue;
                     float bright = Mathf.Clamp01(level * (0.45f + noise));
-                    byte g = (byte)Mathf.Lerp(70f, 255f, bright);
-                    byte r = (byte)Mathf.Lerp(12f, 70f, bright);
-                    byte b = (byte)Mathf.Lerp(40f, 130f, bright);
-                    int ox = 2 + col * 8;
-                    int oy = 4 + row * 7;
-                    for (int y = 0; y < 4; y++)
+                    byte g = (byte)Mathf.Lerp(90f, 255f, bright);
+                    byte r = (byte)Mathf.Lerp(8f, 40f, bright);
+                    byte b = (byte)Mathf.Lerp(36f, 96f, bright);
+                    int ox = col * 8;
+                    int oy = row * 5;
+                    for (int y = 0; y < 3; y++)
                     {
                         int py = oy + y;
                         if (py >= height)
                             continue;
-                        for (int x = 0; x < 4; x++)
+                        for (int x = 0; x < 3; x++)
                         {
                             int px = ox + x;
                             if (px >= width)
