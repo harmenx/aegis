@@ -3,35 +3,60 @@ using UnityEngine;
 
 namespace Gitmos
 {
+    // Vertical barcode columns. Each column is a stack of slices that scroll downward; an
+    // event lights the top slices of its column. After a few seconds the whole stage tips
+    // back into receding lanes.
     public class ActivityBarcode : StageBase
     {
         public Shader screenShader;
 
         public bool HasInk { get; private set; }
 
-        const int Columns = 8;
-        const int Depth = 7;
+        const int Columns = 30;
+        const int Slices = 64;
+        const float StageHeight = 7.6f;
+        const float StageWidth = 12.5f;
+        const float ScrollSeconds = 0.075f;
+        const float Distance = 9.2f;
 
-        readonly float[] energy = new float[Columns];
-        readonly List<Vector3> vertices = new List<Vector3>(2000);
-        readonly List<Color> colors = new List<Color>(2000);
-        readonly List<int> triangles = new List<int>(3000);
+        static readonly Color[] ColumnColors =
+        {
+            new Color(0.3f, 1f, 0.82f),
+            new Color(0.3f, 0.86f, 1f),
+            new Color(0.38f, 0.55f, 1f),
+            new Color(0.55f, 0.42f, 1f),
+            new Color(0.75f, 0.4f, 1f),
+            new Color(0.95f, 0.42f, 0.95f),
+            new Color(1f, 0.4f, 0.62f),
+            new Color(1f, 0.38f, 0.42f),
+            new Color(1f, 0.6f, 0.32f)
+        };
+
+        class Column
+        {
+            public float X;
+            public float Z;
+            public float Width;
+            public Color Color;
+            public float[] Level = new float[Slices];
+            public float[] Thickness = new float[Slices];
+            public float Pending;
+            public float Energy;
+        }
+
+        readonly Column[] columns = new Column[Columns];
+        readonly List<Vector3> vertices = new List<Vector3>(16000);
+        readonly List<Color> colors = new List<Color>(16000);
+        readonly List<Vector2> uvs = new List<Vector2>(16000);
+        readonly List<int> triangles = new List<int>(24000);
+        readonly System.Random rng = new System.Random(7);
 
         Mesh mesh;
         MeshRenderer meshRenderer;
         Material material;
-
-        static readonly Color[] ColumnColors =
-        {
-            new Color(0.25f, 0.95f, 1f),
-            new Color(0.35f, 0.55f, 1f),
-            new Color(0.55f, 0.35f, 1f),
-            new Color(0.78f, 0.35f, 1f),
-            new Color(1f, 0.35f, 0.72f),
-            new Color(1f, 0.42f, 0.38f),
-            new Color(1f, 0.55f, 0.25f),
-            new Color(1f, 0.72f, 0.35f)
-        };
+        Transform pivot;
+        float scroll;
+        float visibleFor;
 
         void OnEnable()
         {
@@ -56,29 +81,16 @@ namespace Gitmos
 
         void HandleEvent(GitEvent gitEvent)
         {
-            int lane = string.IsNullOrEmpty(gitEvent.Category)
-                ? Palette.Lane(gitEvent.Type)
-                : Catalog.StableHash(gitEvent.Category) % Columns;
-            if (lane < 0)
-                lane = 1;
-            int column = Mathf.Clamp(lane, 0, Columns - 1);
-            float amount = gitEvent.Weight > 0f ? Mathf.Clamp(gitEvent.Weight, 0.2f, 2.5f) : 1f;
-            energy[column] = Mathf.Clamp01(energy[column] + 0.28f * amount);
+            string key = !string.IsNullOrEmpty(gitEvent.Category) ? gitEvent.Category
+                : !string.IsNullOrEmpty(gitEvent.Repo) ? gitEvent.Repo
+                : gitEvent.Type.ToString();
+            Column column = columns[Catalog.StableHash(key) % Columns];
+            if (column == null)
+                return;
+            float amount = gitEvent.Weight > 0f ? Mathf.Clamp(gitEvent.Weight, 0.3f, 2.5f) : 1f;
+            column.Pending += 0.45f * amount;
+            column.Energy = Mathf.Min(1.6f, column.Energy + 0.25f * amount);
             HasInk = true;
-        }
-
-        void LateUpdate()
-        {
-            float dt = Time.deltaTime;
-            for (int i = 0; i < energy.Length; i++)
-                energy[i] = Mathf.Max(0f, energy[i] - dt * 0.18f);
-
-            if (material != null)
-                material.SetFloat("_Alpha", Alpha);
-            if (meshRenderer != null)
-                meshRenderer.enabled = Alpha > 0.01f;
-            if (Alpha > 0.01f)
-                DrawBars();
         }
 
         void Build()
@@ -88,81 +100,175 @@ namespace Gitmos
                 shader = screenShader;
             material = new Material(shader);
             material.SetTexture("_BaseMap", Texture2D.whiteTexture);
-            material.SetFloat("_Boost", 1.8f);
+            material.SetFloat("_Boost", 1.6f);
 
-            mesh = new Mesh { name = "ActivityBars" };
+            pivot = new GameObject("Pivot").transform;
+            pivot.SetParent(transform, false);
+
+            mesh = new Mesh { name = "ActivityBars", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
             var meshObject = new GameObject("Bars");
-            meshObject.transform.SetParent(transform, false);
-            var filter = meshObject.AddComponent<MeshFilter>();
-            filter.sharedMesh = mesh;
+            meshObject.transform.SetParent(pivot, false);
+            meshObject.AddComponent<MeshFilter>().sharedMesh = mesh;
             meshRenderer = meshObject.AddComponent<MeshRenderer>();
             meshRenderer.sharedMaterial = material;
             meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
+            for (int i = 0; i < Columns; i++)
+            {
+                float u = (i + 0.5f) / Columns;
+                var column = new Column
+                {
+                    X = (u - 0.5f) * StageWidth + Next(-0.12f, 0.12f),
+                    Z = Next(-1.2f, 3.2f),
+                    Width = Next(0.03f, 0.12f),
+                    Color = ColumnColors[(i * 4 + (int)Next(0f, 3f)) % ColumnColors.Length]
+                };
+                for (int s = 0; s < Slices; s++)
+                {
+                    column.Level[s] = Ambient();
+                    column.Thickness[s] = Next(0.25f, 0.9f);
+                }
+                columns[i] = column;
+            }
         }
 
-        void DrawBars()
+        float Next(float min, float max)
+        {
+            return Mathf.Lerp(min, max, (float)rng.NextDouble());
+        }
+
+        float Ambient()
+        {
+            double roll = rng.NextDouble();
+            if (roll < 0.72)
+                return 0f;
+            return Mathf.Lerp(0.03f, 0.22f, (float)(rng.NextDouble() * rng.NextDouble()));
+        }
+
+        void LateUpdate()
+        {
+            float dt = Time.deltaTime;
+            Camera cam = Camera.main;
+            if (cam != null)
+                PlaceInFrontOf(cam, Distance);
+
+            if (Alpha > 0.01f)
+                visibleFor += dt;
+            else
+                visibleFor = 0f;
+
+            // Upright barcode first, then tip back into receding lanes.
+            float tip = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(7f, 11.5f, visibleFor));
+            if (pivot != null)
+            {
+                pivot.localRotation = Quaternion.Euler(tip * 64f, tip * -16f, tip * 9f);
+                pivot.localPosition = new Vector3(0f, tip * -1.4f, tip * 1.6f);
+            }
+
+            scroll += dt / ScrollSeconds;
+            while (scroll >= 1f)
+            {
+                scroll -= 1f;
+                Advance();
+            }
+
+            for (int i = 0; i < Columns; i++)
+                columns[i].Energy = Mathf.Max(0f, columns[i].Energy - dt * 0.35f);
+
+            if (material != null)
+                material.SetFloat("_Alpha", Alpha);
+            if (meshRenderer != null)
+                meshRenderer.enabled = Alpha > 0.01f;
+            if (Alpha > 0.01f)
+                Draw();
+        }
+
+        void Advance()
+        {
+            for (int c = 0; c < Columns; c++)
+            {
+                Column column = columns[c];
+                for (int s = Slices - 1; s > 0; s--)
+                {
+                    column.Level[s] = column.Level[s - 1];
+                    column.Thickness[s] = column.Thickness[s - 1];
+                }
+                float lit = Mathf.Min(1.5f, column.Pending);
+                column.Pending = Mathf.Max(0f, column.Pending - 0.6f);
+                column.Level[0] = lit > 0.05f ? Mathf.Max(lit, Ambient()) : Ambient();
+                column.Thickness[0] = lit > 0.05f ? Next(0.55f, 0.95f) : Next(0.2f, 0.9f);
+            }
+        }
+
+        void Draw()
         {
             vertices.Clear();
             colors.Clear();
+            uvs.Clear();
             triangles.Clear();
-            float time = Time.time;
-            for (int column = 0; column < Columns; column++)
+
+            float sliceHeight = StageHeight / Slices;
+            float top = StageHeight * 0.5f;
+            for (int c = 0; c < Columns; c++)
             {
-                Color color = ColumnColors[column];
-                for (int row = 0; row < Depth; row++)
+                Column column = columns[c];
+                float depthFade = Mathf.Lerp(1f, 0.55f, Mathf.InverseLerp(-1.2f, 3.2f, column.Z));
+
+                // Faint full-height body so quiet columns still read as columns.
+                Color body = column.Color * (0.012f + column.Energy * 0.03f) * depthFade;
+                body.a = 1f;
+                AddQuad(column.X, column.Z, -top, top, column.Width * 0.5f, body);
+
+                for (int s = 0; s < Slices; s++)
                 {
-                    float x = Mathf.Lerp(-6.4f, 6.4f, column / (float)(Columns - 1));
-                    x += Mathf.Sin(time * 0.15f + row) * 0.08f;
-                    float z = Mathf.Lerp(5.2f, -4.6f, row / (float)(Depth - 1));
-                    float noise = Mathf.PerlinNoise(column * 0.37f, row * 0.41f + time * 0.05f);
-                    float height = Mathf.Lerp(0.45f, 3.6f, noise);
-                    height *= 0.55f + energy[column] * 1.5f;
-                    if (column == 1 && row == 2)
-                        height = Mathf.Max(height, 4.2f);
-                    float width = 0.045f + (row == 0 ? 0.02f : 0f);
-                    float glow = 0.35f + energy[column] * 0.9f;
-                    Color sample = color * glow;
-                    sample.a = 0.55f + energy[column] * 0.4f;
-                    AddBeam(new Vector3(x, -1.15f, z), height, width, sample);
+                    float level = column.Level[s];
+                    if (level < 0.02f)
+                        continue;
+                    // Slices fade as they fall toward the bottom of the stage.
+                    float age = (s + scroll) / Slices;
+                    float fall = Mathf.Lerp(1f, 0.25f, age * age);
+                    float y = top - (s + scroll) * sliceHeight;
+                    float half = sliceHeight * 0.5f * column.Thickness[s];
+                    float intensity = level * fall * depthFade * (level > 0.5f ? 2.4f : 1f);
+                    Color color = Color.Lerp(column.Color, Color.white, Mathf.Clamp01(level - 0.7f) * 1.4f) * intensity;
+                    color.a = 1f;
+                    AddQuad(column.X, column.Z, y - half, y + half, column.Width, color);
+                    if (level > 0.6f)
+                    {
+                        Color glow = column.Color * (intensity * 0.22f);
+                        glow.a = 1f;
+                        AddQuad(column.X, column.Z, y - sliceHeight * 0.9f, y + sliceHeight * 0.9f, column.Width * 3.2f, glow);
+                    }
                 }
             }
 
             mesh.Clear();
             mesh.SetVertices(vertices);
             mesh.SetColors(colors);
+            mesh.SetUVs(0, uvs);
             mesh.SetTriangles(triangles, 0);
             mesh.RecalculateBounds();
         }
 
-        void AddBeam(Vector3 basePoint, float height, float width, Color color)
+        void AddQuad(float x, float z, float y0, float y1, float halfWidth, Color color)
         {
-            Vector3 top = basePoint + Vector3.up * height;
-            AddQuad(basePoint, top, Vector3.right, width, color);
-            AddQuad(basePoint, top, Vector3.forward, width * 0.65f, color);
-        }
-
-        void AddQuad(Vector3 bottom, Vector3 top, Vector3 sideAxis, float width, Color color)
-        {
-            Vector3 side = sideAxis * width;
             int start = vertices.Count;
-            vertices.Add(bottom - side);
-            vertices.Add(bottom + side);
-            vertices.Add(top + side);
-            vertices.Add(top - side);
-            colors.Add(color);
-            colors.Add(color);
-            Color hot = color;
-            hot.r = Mathf.Min(1.6f, hot.r + 0.35f);
-            hot.g = Mathf.Min(1.6f, hot.g + 0.35f);
-            hot.b = Mathf.Min(1.6f, hot.b + 0.35f);
-            colors.Add(hot);
-            colors.Add(hot);
+            vertices.Add(new Vector3(x - halfWidth, y0, z));
+            vertices.Add(new Vector3(x - halfWidth, y1, z));
+            vertices.Add(new Vector3(x + halfWidth, y1, z));
+            vertices.Add(new Vector3(x + halfWidth, y0, z));
+            for (int k = 0; k < 4; k++)
+                colors.Add(color);
+            uvs.Add(new Vector2(0f, 0f));
+            uvs.Add(new Vector2(0f, 1f));
+            uvs.Add(new Vector2(1f, 1f));
+            uvs.Add(new Vector2(1f, 0f));
             triangles.Add(start);
-            triangles.Add(start + 2);
             triangles.Add(start + 1);
-            triangles.Add(start);
-            triangles.Add(start + 3);
             triangles.Add(start + 2);
+            triangles.Add(start);
+            triangles.Add(start + 2);
+            triangles.Add(start + 3);
         }
     }
 }

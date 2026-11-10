@@ -49,6 +49,7 @@ namespace Gitmos.Editor
             Shader additive = RequireShader("Gitmos/Additive");
             Shader screen = RequireShader("Gitmos/Screen");
             Shader stability = RequireShader("Gitmos/Stability");
+            Shader halo = RequireShader("Gitmos/Halo");
 
             var panel = ScriptableObject.CreateInstance<PanelSettings>();
             panel.scaleMode = PanelScaleMode.ScaleWithScreenSize;
@@ -91,6 +92,7 @@ namespace Gitmos.Editor
             var globe = CreateStage<ConnectionGlobe>("Connection", stageRoot.transform);
             globe.fresnelShader = fresnel;
             globe.additiveShader = additive;
+            globe.haloShader = halo;
             var barcode = CreateStage<ActivityBarcode>("Barcode", stageRoot.transform);
             barcode.screenShader = screen;
             var scan = CreateStage<ScanBurst>("Scan", stageRoot.transform);

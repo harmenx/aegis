@@ -24,7 +24,7 @@ namespace Gitmos
 
         void EnsureGrade()
         {
-            Volume volume = FindFirstObjectByType<Volume>();
+            Volume volume = FindAnyObjectByType<Volume>();
             if (volume == null)
                 return;
             VolumeProfile profile = volume.profile;
