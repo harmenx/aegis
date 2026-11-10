@@ -93,7 +93,10 @@ namespace Gitmos
 
             Apply();
             if (dashboard != null)
+            {
                 dashboard.SetStage(VisibleIndex, Titles[Mathf.Clamp(VisibleIndex, 0, Titles.Length - 1)]);
+                dashboard.SetCycle(holdSeconds - hold, Paused);
+            }
         }
 
         public void Jump(int index)

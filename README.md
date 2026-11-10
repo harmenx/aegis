@@ -60,13 +60,39 @@ AegisFeed.Submit(new DataPoint
 
 ## Views
 
-The buttons along the top hold a view. Keys `1`–`4` do the same. Space starts the cycle again. Drag to orbit, and scroll to move closer.
+The buttons under the stage hold a view. Keys `1`–`4` do the same. Space pauses the cycle. Drag to orbit, and scroll to move closer.
 
-- **Globe** — points, arcs, and ray bursts
-- **Activity** — a column for each category
-- **Scan** — a sweep as points arrive
-- **Stability** — a mesh that thickens as resolve, review, and merge points come in
+- **Globe**: points raise tufts of fibres over their city, and arcs draw along great circles to their target, then retract. Recent places get a labelled callout.
+- **Activity**: barcode columns where each point lights the top of its column, keyed by category or repo. After a few seconds the stage tips back into receding lanes.
+- **Scan**: a sweep of streaks as points arrive.
+- **Stability**: a mesh that thickens as resolve, review, and merge points come in.
+
+## Screenshots
+
+| Globe | Activity |
+| --- | --- |
+| ![Globe](docs/screenshots/globe.png) | ![Activity](docs/screenshots/activity.png) |
+| **Lanes** | **Scan** |
+| ![Lanes](docs/screenshots/lanes.png) | ![Scan](docs/screenshots/scan.png) |
+| **Stability** | |
+| ![Stability](docs/screenshots/stability.png) | |
+
+## Panels
+
+- **Trending Developers** ranks actors by point count, with their latest repo.
+- **Data Stream** lists each point with its time, type, actor, and repo.
+- **Code Lines Added / Deleted** cycles Min, Hour, Day, and Week. Min is a rolling 60 s sum of `value` and `secondary`. Click a tab to hold it.
+- **Contribution Graph** has one row per event type and a column per 5 s.
+- **Users Reviewing & Commenting** drifts a bubble per review across a 40 s timeline. Bubble size follows `value`.
+
+## Check it headless
+
+```bash
+Unity -batchmode -projectPath . -executeMethod Gitmos.Editor.ProjectSetup.BuildAndVerify -logFile Logs/verify.log
+```
+
+This rebuilds the scene and plays each view. It writes `playback-globe.png`, `playback-activity.png`, `playback-lanes.png`, `playback-scan.png`, and `playback-shot.png`, plus `playback-report.txt` with PASS or FAIL. Unity can hang on exit after the report is written, so stop it once the report appears. Touch `gif-record.flag` first to also dump 36 frames to `gif-frames/` for the preview.
 
 `github.token` at the project root is only used by the demo's public GitHub feed. It stays out of git, and so do `points.json` and `points.jsonl`.
 
-The dashboard is set in IBM Plex Mono, which is included under the SIL Open Font License.
+The dashboard is set in Inter, with IBM Plex Mono for the data stream. Both are included under the SIL Open Font License.

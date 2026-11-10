@@ -63,7 +63,7 @@ namespace Gitmos
                 Life = Random.Range(1.1f, 2.4f),
                 Color = Palette.For(gitEvent)
             });
-            heat = Mathf.Min(1.5f, heat + 0.18f);
+            heat = Mathf.Min(1f, heat + 0.035f);
         }
 
         void LateUpdate()
@@ -71,14 +71,14 @@ namespace Gitmos
             Camera cam = Camera.main;
             PlaceInFrontOf(cam, 6.15f);
             float dt = Time.deltaTime;
-            heat = Mathf.Max(0f, heat - dt * 0.45f);
+            heat = Mathf.Max(0f, heat - dt * 0.6f);
 
             if (material != null)
                 material.SetFloat("_Alpha", Alpha);
             if (coreMaterial != null)
             {
                 coreMaterial.SetFloat("_Alpha", Alpha);
-                float pulse = 1.4f + heat * 2.2f + Mathf.Sin(Time.time * 2.5f) * 0.15f;
+                float pulse = 0.35f + heat * 0.65f + Mathf.Sin(Time.time * 2.5f) * 0.06f;
                 coreMaterial.SetFloat("_Boost", pulse);
             }
             if (meshRenderer != null)
@@ -86,7 +86,7 @@ namespace Gitmos
             if (core != null)
             {
                 core.gameObject.SetActive(Alpha > 0.01f);
-                float scale = 1.6f + heat * 1.1f;
+                float scale = 0.55f + heat * 0.3f;
                 core.localScale = new Vector3(scale, scale * 0.72f, 1f);
             }
 
@@ -121,7 +121,7 @@ namespace Gitmos
             material = new Material(screenShader);
             material.SetTexture("_BaseMap", texture);
             material.SetFloat("_Boost", 2.6f);
-            material.SetFloat("_Hot", 0.35f);
+            material.SetFloat("_Hot", 0.03f);
             material.SetColor("_HotColor", new Color(1f, 0.55f, 0.85f));
 
             var meshObject = new GameObject("ScanMesh");
