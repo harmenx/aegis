@@ -1,68 +1,123 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <Style src="Dashboard.uss" />
     <ui:VisualElement name="root" class="root">
-        <ui:VisualElement class="column left">
-            <ui:VisualElement class="panel forks">
-                <ui:Label text="Forked Projects" class="kicker" />
-                <ui:Label name="forks" text="1,248" class="figure" />
-                <ui:Label text="Last 10 min" class="hint" />
-            </ui:VisualElement>
-            <ui:VisualElement class="panel grow trend-panel">
-                <ui:Label text="Trending Developers" class="kicker" />
-                <ui:Label name="hot-language" text="TypeScript" class="chip" />
-                <ui:VisualElement name="trending" class="list" />
-            </ui:VisualElement>
-            <ui:VisualElement class="controls">
-                <ui:VisualElement name="stage-toggles" class="toggles">
-                    <ui:Button name="toggle-0" text="Globe" class="toggle" />
-                    <ui:Button name="toggle-1" text="Activity" class="toggle" />
-                    <ui:Button name="toggle-2" text="Scan" class="toggle" />
-                    <ui:Button name="toggle-3" text="Stability" class="toggle" />
-                </ui:VisualElement>
-                <ui:Label name="keys" text="1–4 hold    space cycle" class="keys" />
-            </ui:VisualElement>
-        </ui:VisualElement>
-        <ui:VisualElement class="column center">
-            <ui:VisualElement class="panel header">
-                <ui:VisualElement class="row">
-                    <ui:Label name="stage-title" text="Collaborations Today" class="kicker" />
-                    <ui:VisualElement class="spacer" />
-                    <ui:Label name="clock" text="" class="hint clock" />
-                </ui:VisualElement>
-                <ui:Label name="stage-count" text="362" class="figure accent" />
-                <ui:Label text="Last 10 min" class="hint" />
-            </ui:VisualElement>
-            <ui:VisualElement name="stage-hole" class="hole" picking-mode="Ignore" />
-            <ui:VisualElement class="footer">
-                <ui:VisualElement class="panel footer-card">
-                    <ui:Label text="Code Lines Added / Deleted" class="kicker" />
-                    <ui:VisualElement class="row baseline">
-                        <ui:Label name="lines-added" text="2,841k" class="figure lines" />
-                        <ui:Label name="lines-deleted" text="−186k" class="deleted" />
+        <ui:VisualElement name="grid" class="grid" picking-mode="Ignore" />
+        <ui:VisualElement class="top">
+            <ui:VisualElement class="column left">
+                <ui:VisualElement class="panel forks">
+                    <ui:VisualElement class="row">
+                        <ui:Label text="Forked Projects" class="kicker" />
+                        <ui:VisualElement class="spacer" />
+                        <ui:VisualElement name="icon-fork" class="icon" />
                     </ui:VisualElement>
-                    <ui:Label text="Min     Hour     Day     Week" class="hint" />
-                </ui:VisualElement>
-                <ui:VisualElement class="panel footer-card">
-                    <ui:Label text="Contribution Graph" class="kicker" />
-                    <ui:VisualElement name="contrib" class="contrib" />
-                    <ui:Label text="1    2    3    4    5    6" class="hint" />
-                </ui:VisualElement>
-                <ui:VisualElement class="panel footer-card wide">
-                    <ui:Label text="Users Reviewing &amp; Commenting" class="kicker" />
-                    <ui:Label name="review-count" text="1,840" class="figure" />
+                    <ui:Label name="forks" text="418" class="figure" />
                     <ui:Label text="Last 10 min" class="hint" />
-                    <ui:VisualElement name="reviewers" class="reviewers" />
+                </ui:VisualElement>
+                <ui:VisualElement class="panel grow trend-panel">
+                    <ui:Label text="Trending Developers" class="kicker" />
+                    <ui:VisualElement class="row trend-head">
+                        <ui:Label name="hot-language" text="TypeScript" class="chip" />
+                        <ui:VisualElement class="spacer" />
+                        <ui:Label text="Popular Repository" class="hint" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="trending" class="list" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="column center">
+                <ui:VisualElement class="header">
+                    <ui:VisualElement class="row">
+                        <ui:Label name="stage-title" text="Collaborations Today" class="kicker title" />
+                        <ui:VisualElement class="spacer" />
+                        <ui:VisualElement name="icon-github" class="icon" />
+                    </ui:VisualElement>
+                    <ui:Label name="stage-count" text="1,358" class="figure accent" enable-rich-text="true" />
+                    <ui:Label text="Last 10 min" class="hint" />
+                </ui:VisualElement>
+                <ui:VisualElement name="stage-hole" class="hole" picking-mode="Ignore" />
+                <ui:VisualElement class="controls">
+                    <ui:VisualElement name="icon-settings" class="icon" />
+                    <ui:VisualElement name="stage-toggles" class="toggles">
+                        <ui:Button name="toggle-0" text="Globe" class="toggle" />
+                        <ui:Button name="toggle-1" text="Activity" class="toggle" />
+                        <ui:Button name="toggle-2" text="Scan" class="toggle" />
+                        <ui:Button name="toggle-3" text="Stability" class="toggle" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="spacer" />
+                    <ui:Label name="keys" text="1–4 hold · space pause" class="keys" />
+                    <ui:Label name="cycle" text="18 sec" class="keys" />
+                    <ui:VisualElement name="icon-cycle" class="icon" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="column right">
+                <ui:VisualElement class="panel grow stream-panel">
+                    <ui:VisualElement class="row">
+                        <ui:Label text="Data Stream" class="kicker" />
+                        <ui:VisualElement class="spacer" />
+                        <ui:VisualElement name="icon-list" class="icon" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="row stream-head">
+                        <ui:Label text="Real Time" class="hint" />
+                        <ui:VisualElement class="spacer" />
+                        <ui:Label name="stream-rate" text="" class="hint" />
+                        <ui:Label name="stream-clock" text="" class="hint clock" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="stream-window">
+                        <ui:VisualElement name="stream" class="stream" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
-        <ui:VisualElement class="column right">
-            <ui:VisualElement class="panel grow stream-panel">
+        <ui:VisualElement class="footer">
+            <ui:VisualElement class="panel footer-card lines-card">
                 <ui:VisualElement class="row">
-                    <ui:Label text="Data Stream" class="kicker" />
-                    <ui:VisualElement class="spacer" />
-                    <ui:Label name="stream-clock" text="" class="hint clock" />
+                    <ui:Label text="Code Lines Added" class="kicker" />
+                    <ui:Label text="/Deleted" class="kicker dim" />
                 </ui:VisualElement>
-                <ui:VisualElement name="stream" class="stream" />
+                <ui:Label name="lines-added" text="533,938k" class="figure lines" />
+                <ui:VisualElement class="row tabs-row">
+                    <ui:VisualElement name="line-tabs" class="tabs">
+                        <ui:Button name="tab-0" text="Min" class="tab" />
+                        <ui:Button name="tab-1" text="Hour" class="tab" />
+                        <ui:Button name="tab-2" text="Day" class="tab" />
+                        <ui:Button name="tab-3" text="Week" class="tab" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="spacer" />
+                    <ui:Label name="lines-deleted" text="−186k" class="deleted" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="panel footer-card contrib-card">
+                <ui:VisualElement class="row">
+                    <ui:Label text="Contribution Graph" class="kicker dim" />
+                    <ui:VisualElement class="spacer" />
+                    <ui:Label name="contrib-total" text="" class="hint" />
+                </ui:VisualElement>
+                <ui:VisualElement name="contrib" class="contrib" />
+                <ui:VisualElement class="scale">
+                    <ui:Label text="−4m" class="hint" />
+                    <ui:Label text="−3m" class="hint" />
+                    <ui:Label text="−2m" class="hint" />
+                    <ui:Label text="−1m" class="hint" />
+                    <ui:Label text="now" class="hint" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="panel footer-card wide">
+                <ui:VisualElement class="row">
+                    <ui:Label text="Users Reviewing &amp; Commenting" class="kicker" />
+                    <ui:VisualElement class="spacer" />
+                    <ui:VisualElement name="icon-chat" class="icon" />
+                </ui:VisualElement>
+                <ui:VisualElement class="row review-row">
+                    <ui:VisualElement class="review-figure">
+                        <ui:Label name="review-count" text="3,286" class="figure" />
+                        <ui:Label text="Last 10 min" class="hint" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="timeline">
+                        <ui:VisualElement name="reviewers" class="reviewers">
+                            <ui:VisualElement class="axis" picking-mode="Ignore" />
+                        </ui:VisualElement>
+                        <ui:VisualElement name="review-repos" class="review-repos" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="vignette" class="vignette" picking-mode="Ignore" />

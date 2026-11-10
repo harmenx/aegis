@@ -14,9 +14,6 @@ namespace Gitmos
         bool sawArcs;
         bool sawInk;
         bool sawStream;
-        bool jumped;
-        bool capturedGlobe;
-        bool shotQueued;
         float densityAtStart = -1f;
         bool densityGrew;
         bool awaitingOverlay;
@@ -46,6 +43,13 @@ namespace Gitmos
             Application.runInBackground = true;
         }
 
+        // Timeline: (seconds, stage to show, capture name). A capture renders the scene that
+        // frame and composites the UI overlay on the next one.
+        static readonly float[] StepTimes = { 4.5f, 5f, 8.5f, 18f, 18.5f, 22f, 22.5f, 27f };
+        static readonly int[] StepStages = { -1, 1, -1, -1, 2, -1, 3, -1 };
+        static readonly string[] StepShots = { "globe", null, "activity", "lanes", null, "scan", null, "shot" };
+        int step;
+
         void Update()
         {
             if (!running || finished)
@@ -55,14 +59,18 @@ namespace Gitmos
             {
                 lastBright = CompleteOverlay();
                 awaitingOverlay = false;
+                return;
             }
 
             elapsed += Time.deltaTime;
-            var globe = FindFirstObjectByType<ConnectionGlobe>();
-            var barcode = FindFirstObjectByType<ActivityBarcode>();
-            var stability = FindFirstObjectByType<StabilityMesh>();
-            var dashboard = FindFirstObjectByType<DashboardController>();
-            var metronome = FindFirstObjectByType<Metronome>();
+            // Captures render at 16:9 even when the batch-mode screen is not.
+            if (Camera.main != null)
+                Camera.main.aspect = CaptureWidth / (float)CaptureHeight;
+            var globe = FindAnyObjectByType<ConnectionGlobe>();
+            var barcode = FindAnyObjectByType<ActivityBarcode>();
+            var stability = FindAnyObjectByType<StabilityMesh>();
+            var dashboard = FindAnyObjectByType<DashboardController>();
+            var metronome = FindAnyObjectByType<Metronome>();
 
             if (EventBus.Published >= 20)
                 sawEvents = true;
@@ -77,30 +85,22 @@ namespace Gitmos
             if (stability != null && densityAtStart >= 0f && stability.Density > densityAtStart + 0.08f)
                 densityGrew = true;
 
-            if (!capturedGlobe && elapsed > 1.15f && sawArcs && !awaitingOverlay)
+            if (step >= StepTimes.Length)
             {
-                BeginCapture(Path.GetFullPath(Path.Combine(Application.dataPath, "..", "playback-globe.png")), dashboard);
-                capturedGlobe = true;
+                Finish(globe, barcode, stability, dashboard, metronome);
                 return;
             }
-
-            if (!jumped && elapsed > 1.8f && sawArcs && metronome != null)
-            {
-                metronome.Jump(3);
-                jumped = true;
-            }
-
-            if (elapsed < 5.4f || !capturedGlobe || awaitingOverlay)
+            if (elapsed < StepTimes[step])
                 return;
 
-            if (!shotQueued)
+            if (StepStages[step] >= 0 && metronome != null)
+                metronome.Jump(StepStages[step]);
+            if (StepShots[step] != null)
             {
-                BeginCapture(Path.GetFullPath(Path.Combine(Application.dataPath, "..", "playback-shot.png")), dashboard);
-                shotQueued = true;
-                return;
+                string file = StepShots[step] == "shot" ? "playback-shot.png" : "playback-" + StepShots[step] + ".png";
+                BeginCapture(Path.GetFullPath(Path.Combine(Application.dataPath, "..", file)), dashboard);
             }
-
-            Finish(globe, barcode, stability, dashboard, metronome);
+            step++;
         }
 
         void Finish(
@@ -113,7 +113,7 @@ namespace Gitmos
             finished = true;
             bool stage = metronome != null && metronome.VisibleIndex == 3;
             bool title = dashboard != null && dashboard.StageTitle.Contains("Resolved");
-            bool forks = dashboard != null && dashboard.ForkedProjects >= 1248;
+            bool forks = dashboard != null && dashboard.ForkedProjects > 418;
             bool pass = sawEvents && sawArcs && sawInk && sawStream && densityGrew && stage && title && forks;
 
             if (lastBright < 150)
