@@ -1,12 +1,14 @@
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
-using UnityEngine.UIElements;
 
-namespace Gitmos
+namespace Aegis
 {
-    public class ConnectionGlobe : StageBase
+    // Globe stage: night-earth sphere, fibre tufts over each point, and great-circle arcs.
+    // City callouts live in ConnectionGlobe.Callouts.cs.
+    public partial class ConnectionGlobe : StageBase
     {
+        public Texture2D earthTexture;
         public Shader fresnelShader;
         public Shader additiveShader;
         public Shader haloShader;
@@ -19,7 +21,6 @@ namespace Gitmos
         const int MaxArcs = 90;
         const int MaxSpikes = 1400;
         const int ArcSegments = 72;
-        const int MaxCallouts = 4;
 
         static readonly Color[] FiberPalette =
         {
@@ -60,28 +61,9 @@ namespace Gitmos
             public float Life;
         }
 
-        class Callout
-        {
-            public string Name;
-            public string Detail;
-            public Vector3 Direction;
-            public float Age;
-        }
-
-        class CalloutView
-        {
-            public VisualElement Root;
-            public VisualElement Leader;
-            public VisualElement Dot;
-            public Label Title;
-            public Label Detail;
-        }
-
         readonly List<Arc> arcs = new List<Arc>(MaxArcs);
         readonly List<Spike> spikes = new List<Spike>(MaxSpikes);
         readonly List<Burst> bursts = new List<Burst>(64);
-        readonly List<Callout> callouts = new List<Callout>(MaxCallouts);
-        readonly List<CalloutView> calloutViews = new List<CalloutView>(MaxCallouts);
         readonly float[] heat = new float[64];
         readonly Vector3[] arcPoints = new Vector3[ArcSegments + 1];
         readonly float[] arcAlphas = new float[ArcSegments + 1];
@@ -108,8 +90,7 @@ namespace Gitmos
         Vector3[] starDirections;
         float[] starSizes;
         Vector3 cameraLocal;
-        VisualElement calloutLayer;
-        VisualElement calloutRoot;
+        Texture2D loadedEarth;
 
         void OnEnable()
         {
@@ -132,6 +113,7 @@ namespace Gitmos
             DisposeObject(lineMaterial);
             DisposeObject(sphereMaterial);
             DisposeObject(haloMaterial);
+            DisposeObject(loadedEarth);
             foreach (Material material in ringMaterials)
                 DisposeObject(material);
         }
@@ -261,12 +243,7 @@ namespace Gitmos
                 if (bursts[i].Age >= bursts[i].Life)
                     bursts.RemoveAt(i);
             }
-            for (int i = callouts.Count - 1; i >= 0; i--)
-            {
-                callouts[i].Age += dt;
-                if (callouts[i].Age > 7f)
-                    callouts.RemoveAt(i);
-            }
+            AgeCallouts(dt);
             ActiveArcs = arcs.Count;
         }
 
@@ -322,11 +299,11 @@ namespace Gitmos
         void Build()
         {
             if (fresnelShader == null)
-                fresnelShader = Shader.Find("Gitmos/Fresnel");
+                fresnelShader = Shader.Find("Aegis/Fresnel");
             if (additiveShader == null)
-                additiveShader = Shader.Find("Gitmos/Additive");
+                additiveShader = Shader.Find("Aegis/Additive");
             if (haloShader == null)
-                haloShader = Shader.Find("Gitmos/Halo");
+                haloShader = Shader.Find("Aegis/Halo");
 
             var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             sphere.name = "Sphere";
@@ -405,7 +382,10 @@ namespace Gitmos
 
         void SeedSpikes()
         {
-            // A warm start so the first frame already has tufts over the busiest places.
+            // A warm start so the demo's first frame already has tufts over the busiest places.
+            // Custom data starts on a clean globe.
+            if (!EventSimulator.DemoEnabled)
+                return;
             int[] busy = { 1, 0, 2, 3, 5, 8, 19, 24 };
             foreach (int cityIndex in busy)
             {
@@ -748,164 +728,30 @@ namespace Gitmos
             }
         }
 
-        void RememberCallout(string name, string detail, Vector3 direction)
+        // The imported texture ships with builds; the file and procedural fallbacks keep a
+        // scene built without it working in the editor.
+        Texture2D LoadEarth()
         {
-            if (string.IsNullOrEmpty(name))
-                return;
-            string label = name.ToLowerInvariant();
-            for (int i = 0; i < callouts.Count; i++)
-            {
-                if (callouts[i].Name != label)
-                    continue;
-                callouts[i].Direction = direction;
-                callouts[i].Detail = detail;
-                if (callouts[i].Age > 5.4f)
-                    callouts[i].Age = 5.4f;
-                return;
-            }
-            if (callouts.Count >= MaxCallouts)
-            {
-                int oldest = 0;
-                for (int i = 1; i < callouts.Count; i++)
-                {
-                    if (callouts[i].Age > callouts[oldest].Age)
-                        oldest = i;
-                }
-                if (callouts[oldest].Age < 2.6f)
-                    return;
-                callouts.RemoveAt(oldest);
-            }
-            callouts.Insert(0, new Callout { Name = label, Detail = detail, Direction = direction, Age = 0f });
-        }
-
-        bool EnsureCalloutLayer()
-        {
-            if (calloutLayer != null && calloutLayer.panel != null)
-                return true;
-            DashboardController dashboard = FindAnyObjectByType<DashboardController>();
-            if (dashboard == null)
-                return false;
-            UIDocument document = dashboard.GetComponent<UIDocument>();
-            if (document == null || document.rootVisualElement == null || document.rootVisualElement.panel == null)
-                return false;
-            calloutRoot = document.rootVisualElement.Q<VisualElement>("root") ?? document.rootVisualElement;
-            calloutLayer = calloutRoot.Q<VisualElement>("city-callouts");
-            if (calloutLayer == null)
-            {
-                calloutLayer = new VisualElement { name = "city-callouts", pickingMode = PickingMode.Ignore };
-                calloutLayer.AddToClassList("callout-layer");
-                calloutRoot.Insert(0, calloutLayer);
-            }
-            calloutViews.Clear();
-            calloutLayer.Clear();
-            return true;
-        }
-
-        CalloutView MakeCalloutView()
-        {
-            var view = new CalloutView { Root = new VisualElement { pickingMode = PickingMode.Ignore } };
-            view.Root.AddToClassList("callout");
-            view.Leader = new VisualElement { pickingMode = PickingMode.Ignore };
-            view.Leader.AddToClassList("callout-leader");
-            view.Dot = new VisualElement { pickingMode = PickingMode.Ignore };
-            view.Dot.AddToClassList("callout-dot");
-            view.Title = new Label { pickingMode = PickingMode.Ignore };
-            view.Title.AddToClassList("callout-title");
-            view.Detail = new Label { pickingMode = PickingMode.Ignore };
-            view.Detail.AddToClassList("callout-detail");
-            view.Root.Add(view.Leader);
-            view.Root.Add(view.Dot);
-            view.Root.Add(view.Title);
-            view.Root.Add(view.Detail);
-            calloutLayer.Add(view.Root);
-            calloutViews.Add(view);
-            return view;
-        }
-
-        void HideCallouts()
-        {
-            for (int i = 0; i < calloutViews.Count; i++)
-                calloutViews[i].Root.style.display = DisplayStyle.None;
-        }
-
-        void DrawCallouts(Camera cam)
-        {
-            if (!EnsureCalloutLayer())
-                return;
-            if (Alpha < 0.4f || callouts.Count == 0)
-            {
-                HideCallouts();
-                return;
-            }
-
-            int shown = 0;
-            Vector3 towardCamera = (cam.transform.position - transform.position).normalized;
-            // Viewport space keeps labels pinned however the panel is scaled or rendered.
-            Vector3 centreViewport = cam.WorldToViewportPoint(transform.position);
-            Rect panelRect = calloutRoot.panel.visualTree.layout;
-            Vector2 panelSize = new Vector2(panelRect.width, panelRect.height);
-            if (float.IsNaN(panelSize.x) || panelSize.x <= 0f)
-                return;
-            for (int i = 0; i < callouts.Count; i++)
-            {
-                Callout callout = callouts[i];
-                Vector3 anchorWorld = transform.TransformPoint(callout.Direction * Radius);
-                Vector3 viewport = cam.WorldToViewportPoint(anchorWorld);
-                float facing = Vector3.Dot(transform.TransformDirection(callout.Direction), towardCamera);
-                float onFace = Mathf.SmoothStep(0.05f, 0.4f, facing);
-                float fade = Mathf.Clamp01(callout.Age / 0.45f) * Mathf.Clamp01((7f - callout.Age) / 1.4f) * onFace;
-                if (viewport.z < 0.1f || fade < 0.04f)
-                    continue;
-
-                CalloutView view = shown < calloutViews.Count ? calloutViews[shown] : MakeCalloutView();
-                Vector2 anchor = new Vector2(viewport.x * panelSize.x, (1f - viewport.y) * panelSize.y);
-                Vector2 centre = new Vector2(centreViewport.x * panelSize.x, (1f - centreViewport.y) * panelSize.y);
-                // Labels lean away from the globe's centre so they sit off the busy disc.
-                bool leftSide = anchor.x < centre.x;
-                float rise = 34f + (i % 2) * 22f;
-
-                view.Root.style.display = DisplayStyle.Flex;
-                view.Root.style.left = anchor.x;
-                view.Root.style.top = anchor.y - rise;
-                view.Root.style.opacity = fade;
-                view.Leader.style.height = rise;
-                view.Dot.style.top = rise - 2f;
-                view.Title.text = callout.Name;
-                view.Detail.text = Trim(callout.Detail, 30);
-                float textOffset = leftSide ? -6f : 6f;
-                view.Title.style.translate = new Translate(new Length(leftSide ? -100 : 0, LengthUnit.Percent), 0);
-                view.Detail.style.translate = new Translate(new Length(leftSide ? -100 : 0, LengthUnit.Percent), 0);
-                view.Title.style.left = textOffset;
-                view.Detail.style.left = textOffset;
-                shown++;
-            }
-            for (int i = shown; i < calloutViews.Count; i++)
-                calloutViews[i].Root.style.display = DisplayStyle.None;
-        }
-
-        static string Trim(string value, int max)
-        {
-            if (string.IsNullOrEmpty(value) || value.Length <= max)
-                return value ?? "";
-            return value.Substring(0, max - 1) + "…";
-        }
-
-        static Texture2D LoadEarth()
-        {
+            if (earthTexture != null)
+                return earthTexture;
             string path = Path.Combine(Application.streamingAssetsPath, "earth-night.jpg");
             if (!File.Exists(path))
                 path = Path.Combine(Application.dataPath, "Textures/earth-night.jpg");
             if (!File.Exists(path))
-                return ProceduralTextures.LandMask(256, 128);
-            var texture = new Texture2D(2, 2, TextureFormat.RGB24, true, true)
+            {
+                Log.WarnOnce("earth-texture", "Earth texture not found; drawing a procedural land mask instead.");
+                loadedEarth = ProceduralTextures.LandMask(256, 128);
+                return loadedEarth;
+            }
+            loadedEarth = new Texture2D(2, 2, TextureFormat.RGB24, true, true)
             {
                 wrapMode = TextureWrapMode.Repeat,
                 filterMode = FilterMode.Trilinear,
                 anisoLevel = 4,
                 name = "EarthNight"
             };
-            texture.LoadImage(File.ReadAllBytes(path));
-            return texture;
+            loadedEarth.LoadImage(File.ReadAllBytes(path));
+            return loadedEarth;
         }
 
         static float Gaussian()
@@ -923,16 +769,6 @@ namespace Gitmos
                 Destroy(target);
             else
                 DestroyImmediate(target);
-        }
-    }
-
-    public class RingSpin : MonoBehaviour
-    {
-        public float degreesPerSecond = 4f;
-
-        void Update()
-        {
-            transform.Rotate(Vector3.up, degreesPerSecond * Time.deltaTime, Space.Self);
         }
     }
 }

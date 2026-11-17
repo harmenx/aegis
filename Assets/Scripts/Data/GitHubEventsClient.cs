@@ -5,7 +5,7 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.Networking;
 
-namespace Gitmos
+namespace Aegis
 {
     public class GitHubEventsClient : MonoBehaviour
     {
@@ -17,7 +17,7 @@ namespace Gitmos
 
         void Start()
         {
-            if (enabledFeed)
+            if (enabledFeed && AegisConfig.Current.githubFeed)
                 StartCoroutine(Poll());
         }
 
@@ -35,7 +35,7 @@ namespace Gitmos
         {
             using (var request = UnityWebRequest.Get("https://api.github.com/events?per_page=30"))
             {
-                request.SetRequestHeader("User-Agent", "gitmos-rebuild");
+                request.SetRequestHeader("User-Agent", "aegis");
                 request.SetRequestHeader("Accept", "application/vnd.github+json");
                 string token = ReadToken();
                 if (!string.IsNullOrEmpty(token))
@@ -48,7 +48,7 @@ namespace Gitmos
                     if (!loggedFailure)
                     {
                         loggedFailure = true;
-                        Debug.Log("GitHub events feed unavailable, simulation continues. " + request.error);
+                        Log.Info("GitHub events feed unavailable; the demo continues on simulated events. " + request.error);
                     }
                     yield break;
                 }
@@ -62,7 +62,7 @@ namespace Gitmos
                     if (!loggedFailure)
                     {
                         loggedFailure = true;
-                        Debug.Log("GitHub events feed could not be read, simulation continues. " + error.Message);
+                        Log.Info("GitHub events feed could not be read; the demo continues on simulated events. " + error.Message);
                     }
                 }
             }

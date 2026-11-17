@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Gitmos
+namespace Aegis
 {
     public class StabilityMesh : StageBase
     {
@@ -93,9 +93,9 @@ namespace Gitmos
         void Build()
         {
             if (stabilityShader == null)
-                stabilityShader = Shader.Find("Gitmos/Stability");
+                stabilityShader = Shader.Find("Aegis/Stability");
             if (additiveShader == null)
-                additiveShader = Shader.Find("Gitmos/Additive");
+                additiveShader = Shader.Find("Aegis/Additive");
 
             body = new Mesh { name = "StabilityBody", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
             int vertCount = Columns * Rows;

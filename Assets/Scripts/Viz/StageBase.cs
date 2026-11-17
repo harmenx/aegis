@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Gitmos
+namespace Aegis
 {
     public abstract class StageBase : MonoBehaviour
     {

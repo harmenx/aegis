@@ -44,3 +44,10 @@ playback-*.png
 gif-frames/
 gif-record.flag
 gif-record.done
+
+# Local runtime config and verification output
+aegis.config.json
+playback-*.png
+gif-frames/
+gif-record.flag
+gif-record.done

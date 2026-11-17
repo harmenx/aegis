@@ -11,3 +11,6 @@
 *.png binary
 *.jpg binary
 *.ttf binary
+*.asmdef text eol=lf
+*.yml text eol=lf
+*.txt text eol=lf

@@ -1,4 +1,4 @@
-Shader "Gitmos/Stability"
+Shader "Aegis/Stability"
 {
     Properties
     {

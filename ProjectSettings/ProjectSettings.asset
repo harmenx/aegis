@@ -611,14 +611,14 @@ PlayerSettings:
   editorAssembliesCompatibilityLevel: 1
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
-  metroPackageName: gitmos-rebuild
+  metroPackageName: aegis
   metroPackageVersion: 
   metroCertificatePath: 
   metroCertificatePassword: 
   metroCertificateSubject: 
   metroCertificateIssuer: 
   metroCertificateNotAfter: 0000000000000000
-  metroApplicationDescription: gitmos-rebuild
+  metroApplicationDescription: aegis
   wsaImages: {}
   metroTileShortName: 
   metroTileShowName: 0
