@@ -1,4 +1,4 @@
-/* Gitmos overlay: Inter for chrome and figures, Plex Mono for the stream. */
+/* Aegis dashboard: Inter for chrome and figures, IBM Plex Mono for the stream. */
 
 .root {
     position: absolute;
@@ -64,6 +64,106 @@
 .hole {
     flex-grow: 1;
     background-color: rgba(0, 0, 0, 0);
+    align-items: center;
+    justify-content: center;
+}
+
+/* Feed status: one pill in the stage header, colored by state. */
+.status-pill {
+    flex-direction: row;
+    align-items: center;
+    height: 20px;
+    padding: 0 9px 0 8px;
+    margin-right: 12px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    background-color: rgba(120, 132, 150, 0.12);
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    margin-right: 6px;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+    background-color: rgb(120, 132, 150);
+}
+
+.status-text {
+    font-size: 10px;
+    color: rgb(160, 172, 190);
+    margin: 0;
+    padding: 0;
+    -unity-font-definition: url("../Fonts/Inter-SemiBold.ttf");
+}
+
+.status-live {
+    background-color: rgba(47, 210, 122, 0.12);
+}
+
+.status-live .status-dot {
+    background-color: rgb(47, 210, 122);
+}
+
+.status-live .status-text {
+    color: rgb(140, 230, 180);
+}
+
+.status-demo {
+    background-color: rgba(242, 201, 76, 0.1);
+}
+
+.status-demo .status-dot {
+    background-color: rgb(242, 201, 76);
+}
+
+.status-demo .status-text {
+    color: rgb(230, 210, 150);
+}
+
+.status-error {
+    background-color: rgba(255, 77, 109, 0.12);
+}
+
+.status-error .status-dot {
+    background-color: rgb(255, 77, 109);
+}
+
+.status-error .status-text {
+    color: rgb(255, 160, 175);
+}
+
+/* Shown only when the demo is off and no point has arrived yet. */
+.empty-state {
+    display: none;
+    align-items: center;
+    padding: 22px 28px 20px 28px;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+    background-color: rgba(17, 20, 26, 0.82);
+}
+
+.empty-title {
+    font-size: 15px;
+    -unity-font-definition: url("../Fonts/Inter-SemiBold.ttf");
+    color: rgb(206, 214, 226);
+    margin: 0 0 8px 0;
+    padding: 0;
+}
+
+.empty-hint {
+    font-size: 11px;
+    -unity-font-definition: url("../Fonts/IBMPlexMono-Regular.ttf");
+    -unity-text-align: middle-center;
+    color: rgba(130, 144, 164, 0.95);
+    margin: 0;
+    padding: 0;
 }
 
 .header {

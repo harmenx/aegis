@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Gitmos
+namespace Aegis
 {
     // Thin line icons for panel corners, drawn with the vector API so no icon font is needed.
     public static class Icons

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Gitmos
+namespace Aegis
 {
     public static class ProceduralTextures
     {

@@ -1,4 +1,4 @@
-Shader "Gitmos/Halo"
+Shader "Aegis/Halo"
 {
     Properties
     {

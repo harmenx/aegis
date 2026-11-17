@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Gitmos
+namespace Aegis
 {
     public enum GitEventType
     {
