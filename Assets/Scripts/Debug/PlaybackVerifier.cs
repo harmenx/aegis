@@ -3,7 +3,7 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Gitmos
+namespace Aegis
 {
     public class PlaybackVerifier : MonoBehaviour
     {
@@ -31,7 +31,7 @@ namespace Gitmos
         void Start()
         {
 #if UNITY_EDITOR
-            running = UnityEditor.EditorPrefs.GetBool("Gitmos.Verify", false);
+            running = UnityEditor.EditorPrefs.GetBool("Aegis.Verify", false);
 #else
             running = false;
 #endif
@@ -137,7 +137,7 @@ namespace Gitmos
             Debug.Log(report.ToString());
 
 #if UNITY_EDITOR
-            UnityEditor.EditorPrefs.SetBool("Gitmos.Verify", false);
+            UnityEditor.EditorPrefs.SetBool("Aegis.Verify", false);
             UnityEditor.EditorApplication.isPlaying = false;
 #endif
         }
@@ -250,7 +250,7 @@ namespace Gitmos
                     bright++;
             }
             Destroy(image);
-            Debug.Log("Gitmos capture overlay=" + lastOverlayPixels + " path=" + path);
+            Log.Info("Capture overlay=" + lastOverlayPixels + " path=" + path);
             return bright;
         }
     }

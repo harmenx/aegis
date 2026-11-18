@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Gitmos
+namespace Aegis
 {
     // Vertical barcode columns. Each column is a stack of slices that scroll downward; an
     // event lights the top slices of its column. After a few seconds the whole stage tips
@@ -95,7 +95,7 @@ namespace Gitmos
 
         void Build()
         {
-            Shader shader = Shader.Find("Gitmos/Additive");
+            Shader shader = Shader.Find("Aegis/Additive");
             if (shader == null)
                 shader = screenShader;
             material = new Material(shader);

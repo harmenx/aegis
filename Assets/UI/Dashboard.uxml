@@ -10,13 +10,13 @@
                         <ui:VisualElement class="spacer" />
                         <ui:VisualElement name="icon-fork" class="icon" />
                     </ui:VisualElement>
-                    <ui:Label name="forks" text="418" class="figure" />
+                    <ui:Label name="forks" text="0" class="figure" />
                     <ui:Label text="Last 10 min" class="hint" />
                 </ui:VisualElement>
                 <ui:VisualElement class="panel grow trend-panel">
                     <ui:Label text="Trending Developers" class="kicker" />
                     <ui:VisualElement class="row trend-head">
-                        <ui:Label name="hot-language" text="TypeScript" class="chip" />
+                        <ui:Label name="hot-language" text="" class="chip" />
                         <ui:VisualElement class="spacer" />
                         <ui:Label text="Popular Repository" class="hint" />
                     </ui:VisualElement>
@@ -28,12 +28,21 @@
                     <ui:VisualElement class="row">
                         <ui:Label name="stage-title" text="Collaborations Today" class="kicker title" />
                         <ui:VisualElement class="spacer" />
+                        <ui:VisualElement name="feed-pill" class="status-pill">
+                            <ui:VisualElement class="status-dot" />
+                            <ui:Label name="feed-status" text="" class="status-text" />
+                        </ui:VisualElement>
                         <ui:VisualElement name="icon-github" class="icon" />
                     </ui:VisualElement>
-                    <ui:Label name="stage-count" text="1,358" class="figure accent" enable-rich-text="true" />
+                    <ui:Label name="stage-count" text="0" class="figure accent" enable-rich-text="true" />
                     <ui:Label text="Last 10 min" class="hint" />
                 </ui:VisualElement>
-                <ui:VisualElement name="stage-hole" class="hole" picking-mode="Ignore" />
+                <ui:VisualElement name="stage-hole" class="hole" picking-mode="Ignore">
+                    <ui:VisualElement name="empty-state" class="empty-state" picking-mode="Ignore">
+                        <ui:Label text="Waiting for data" class="empty-title" />
+                        <ui:Label name="empty-hint" text="" class="empty-hint" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
                 <ui:VisualElement class="controls">
                     <ui:VisualElement name="icon-settings" class="icon" />
                     <ui:VisualElement name="stage-toggles" class="toggles">
@@ -73,7 +82,7 @@
                     <ui:Label text="Code Lines Added" class="kicker" />
                     <ui:Label text="/Deleted" class="kicker dim" />
                 </ui:VisualElement>
-                <ui:Label name="lines-added" text="533,938k" class="figure lines" />
+                <ui:Label name="lines-added" text="0" class="figure lines" />
                 <ui:VisualElement class="row tabs-row">
                     <ui:VisualElement name="line-tabs" class="tabs">
                         <ui:Button name="tab-0" text="Min" class="tab" />
@@ -82,7 +91,7 @@
                         <ui:Button name="tab-3" text="Week" class="tab" />
                     </ui:VisualElement>
                     <ui:VisualElement class="spacer" />
-                    <ui:Label name="lines-deleted" text="−186k" class="deleted" />
+                    <ui:Label name="lines-deleted" text="−0" class="deleted" />
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement class="panel footer-card contrib-card">
@@ -108,7 +117,7 @@
                 </ui:VisualElement>
                 <ui:VisualElement class="row review-row">
                     <ui:VisualElement class="review-figure">
-                        <ui:Label name="review-count" text="3,286" class="figure" />
+                        <ui:Label name="review-count" text="0" class="figure" />
                         <ui:Label text="Last 10 min" class="hint" />
                     </ui:VisualElement>
                     <ui:VisualElement class="timeline">

@@ -1,10 +1,12 @@
-Shader "Gitmos/Additive"
+Shader "Aegis/Screen"
 {
     Properties
     {
-        _BaseMap ("Texture", 2D) = "white" {}
+        _BaseMap ("Texture", 2D) = "black" {}
+        _HotColor ("Hot", Color) = (1, 0.75, 0.95, 1)
         _Alpha ("Alpha", Range(0, 1)) = 1
-        _Boost ("Boost", Float) = 1
+        _Boost ("Boost", Float) = 2
+        _Hot ("Hot", Float) = 1.2
     }
     SubShader
     {
@@ -28,14 +30,12 @@ Shader "Gitmos/Additive"
             {
                 float4 positionOS : POSITION;
                 float2 uv : TEXCOORD0;
-                float4 color : COLOR;
             };
 
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
                 float2 uv : TEXCOORD0;
-                float4 color : COLOR;
             };
 
             TEXTURE2D(_BaseMap);
@@ -43,16 +43,17 @@ Shader "Gitmos/Additive"
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _BaseMap_ST;
+                float4 _HotColor;
                 float _Alpha;
                 float _Boost;
+                float _Hot;
             CBUFFER_END
 
             Varyings vert(Attributes input)
             {
                 Varyings output;
                 output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
-                output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
-                output.color = input.color;
+                output.uv = input.uv;
                 return output;
             }
 
@@ -61,8 +62,12 @@ Shader "Gitmos/Additive"
                 float2 uv = input.uv;
                 if (facing < 0)
                     uv.x = 1.0 - uv.x;
-                half4 tex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, uv);
-                half3 col = tex.rgb * input.color.rgb * input.color.a * _Boost * _Alpha;
+                half3 tex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, uv).rgb;
+                float dx = uv.x - 0.5;
+                float dy = uv.y - 0.5;
+                float hot = exp(-(dx * dx * 5.5 + dy * dy * 14.0)) * _Hot;
+                half3 col = tex * _Boost + _HotColor.rgb * hot;
+                col *= _Alpha;
                 return half4(col, 1);
             }
             ENDHLSL

@@ -1,0 +1,12 @@
+{
+  "port": 8787,
+  "bindAddress": "127.0.0.1",
+  "listen": true,
+  "demo": "auto",
+  "githubFeed": true,
+  "maxBodyKb": 1024,
+  "maxPointsPerRequest": 5000,
+  "maxPending": 20000,
+  "maxPointsPerFrame": 400,
+  "pollSeconds": 0.4
+}

@@ -2,7 +2,7 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Gitmos
+namespace Aegis
 {
     public class GifRecorder : MonoBehaviour
     {
@@ -170,10 +170,10 @@ namespace Gitmos
             recording = false;
             string done = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "gif-record.done"));
             File.WriteAllText(done, written.ToString());
-            Debug.Log("Aegis gif wrote " + written + " frames");
+            Log.Info("GIF wrote " + written + " frames");
 #if UNITY_EDITOR
             // When the playback verifier is also running, let it finish the session.
-            if (!UnityEditor.EditorPrefs.GetBool("Gitmos.Verify", false))
+            if (!UnityEditor.EditorPrefs.GetBool("Aegis.Verify", false))
                 UnityEditor.EditorApplication.isPlaying = false;
 #endif
         }

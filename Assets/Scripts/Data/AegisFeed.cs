@@ -1,28 +1,64 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 
-namespace Gitmos
+namespace Aegis
 {
-    // One record from an outside system. Latitude and longitude place it on the globe.
-    // A target draws an arc. Value raises the activity bars and the line counter.
-    [Serializable]
-    public struct DataPoint
+    public enum ListenState
     {
-        public string Id;
-        public string Label;
-        public string Series;
-        public string Category;
-        public float Latitude;
-        public float Longitude;
-        public string Place;
-        public bool HasLocation;
-        public float TargetLatitude;
-        public float TargetLongitude;
-        public string TargetPlace;
-        public bool HasTarget;
-        public float Value;
-        public float Secondary;
+        Off,
+        Listening,
+        Failed
+    }
+
+    // What the feed has seen so far. Read by the dashboard status and GET /health;
+    // written from the main thread and the HTTP thread.
+    public static class FeedStatus
+    {
+        static long accepted;
+        static long rejected;
+        static long lastCustomTicks;
+
+        public static long Accepted => Interlocked.Read(ref accepted);
+        public static long Rejected => Interlocked.Read(ref rejected);
+        public static ListenState Listen { get; internal set; }
+        public static string ListenDetail { get; internal set; } = "";
+
+        public static DateTime LastCustomPointUtc => new DateTime(Interlocked.Read(ref lastCustomTicks), DateTimeKind.Utc);
+
+        public static double SecondsSinceCustomPoint
+        {
+            get
+            {
+                long ticks = Interlocked.Read(ref lastCustomTicks);
+                return ticks == 0 ? double.PositiveInfinity : (DateTime.UtcNow.Ticks - ticks) / (double)TimeSpan.TicksPerSecond;
+            }
+        }
+
+        internal static void CountAccepted(int count)
+        {
+            if (count <= 0)
+                return;
+            Interlocked.Add(ref accepted, count);
+            Interlocked.Exchange(ref lastCustomTicks, DateTime.UtcNow.Ticks);
+        }
+
+        internal static void CountRejected(int count)
+        {
+            if (count > 0)
+                Interlocked.Add(ref rejected, count);
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetForPlayMode()
+        {
+            Interlocked.Exchange(ref accepted, 0);
+            Interlocked.Exchange(ref rejected, 0);
+            Interlocked.Exchange(ref lastCustomTicks, 0);
+            Listen = ListenState.Off;
+            ListenDetail = "";
+        }
     }
 
     public static class AegisFeed
@@ -31,12 +67,20 @@ namespace Gitmos
 
         static bool announced;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetForPlayMode()
+        {
+            KeepDemo = false;
+            announced = false;
+        }
+
         public static void UseDemo(bool enabled)
         {
             KeepDemo = enabled;
             EventSimulator.DemoEnabled = enabled;
         }
 
+        // Main thread only.
         public static void Submit(DataPoint point)
         {
             if (!KeepDemo)
@@ -44,41 +88,41 @@ namespace Gitmos
             if (!announced)
             {
                 announced = true;
-                Debug.Log("Aegis is drawing custom points. The built-in demo is paused. AegisFeed.UseDemo(true) mixes them back in.");
+                Log.Info(KeepDemo
+                    ? "Drawing custom points alongside the demo."
+                    : "Drawing custom points. The built-in demo is paused; AegisFeed.UseDemo(true) mixes it back in.");
             }
+            FeedStatus.CountAccepted(1);
             EventBus.Publish(ToEvent(point));
         }
 
+        // Main thread only. Returns how many points were drawn; problems are logged.
         public static int SubmitJson(string json)
         {
-            return SubmitJson(json, null);
+            return SubmitJson(json, "SubmitJson");
         }
 
-        public static int SubmitJson(string json, HashSet<string> seen)
+        public static int SubmitJson(string json, string source)
         {
-            if (string.IsNullOrWhiteSpace(json))
-                return 0;
+            PointParseResult result = PointParser.Parse(json);
+            Report(result, source);
+            foreach (DataPoint point in result.Points)
+                Submit(point);
+            return result.Points.Count;
+        }
 
-            PointDto[] records = Parse(json);
-            if (records == null || records.Length == 0)
-                return 0;
-
-            int submitted = 0;
-            for (int i = 0; i < records.Length; i++)
+        internal static void Report(PointParseResult result, string source)
+        {
+            if (!result.Ok)
             {
-                PointDto record = records[i];
-                if (record == null)
-                    continue;
-                if (seen != null)
-                {
-                    string fingerprint = Fingerprint(record);
-                    if (!seen.Add(fingerprint))
-                        continue;
-                }
-                Submit(FromDto(record));
-                submitted++;
+                FeedStatus.CountRejected(1);
+                Log.WarnOnce(source + "|" + result.FatalError, source + ": " + result.FatalError);
+                return;
             }
-            return submitted;
+            if (result.Rejected == 0)
+                return;
+            FeedStatus.CountRejected(result.Rejected);
+            Log.WarnOnce(source + "|" + result.Errors[0], source + ": skipped " + result.Rejected + " point(s). " + string.Join(" ", result.Errors));
         }
 
         public static GitEvent ToEvent(DataPoint point)
@@ -143,67 +187,6 @@ namespace Gitmos
                 Tint = tint,
                 SkipGlobe = !placed
             };
-        }
-
-        static PointDto[] Parse(string json)
-        {
-            try
-            {
-                string trimmed = json.Trim();
-                if (trimmed.StartsWith("["))
-                    trimmed = "{\"points\":" + trimmed + "}";
-                else if (trimmed.StartsWith("{") && trimmed.IndexOf("\"points\"", StringComparison.Ordinal) < 0)
-                    trimmed = "{\"points\":[" + trimmed + "]}";
-
-                PointBatch batch = JsonUtility.FromJson<PointBatch>(trimmed);
-                if (batch == null || batch.points == null)
-                    return null;
-                return batch.points;
-            }
-            catch (Exception error)
-            {
-                Debug.LogWarning("Aegis could not read points. " + error.Message);
-                return null;
-            }
-        }
-
-        static DataPoint FromDto(PointDto record)
-        {
-            return new DataPoint
-            {
-                Id = record.id,
-                Label = record.label,
-                Series = record.series,
-                Category = record.category,
-                Latitude = record.latitude,
-                Longitude = record.longitude,
-                Place = record.place,
-                HasLocation = record.hasLocation,
-                TargetLatitude = record.targetLatitude,
-                TargetLongitude = record.targetLongitude,
-                TargetPlace = record.targetPlace,
-                HasTarget = record.hasTarget,
-                Value = record.value,
-                Secondary = record.secondary
-            };
-        }
-
-        static string Fingerprint(PointDto record)
-        {
-            return string.Join("|",
-                record.id,
-                record.label,
-                record.series,
-                record.category,
-                record.place,
-                record.latitude.ToString("0.###"),
-                record.longitude.ToString("0.###"),
-                record.targetPlace,
-                record.targetLatitude.ToString("0.###"),
-                record.targetLongitude.ToString("0.###"),
-                record.hasTarget ? "1" : "0",
-                record.value.ToString("0.###"),
-                record.secondary.ToString("0.###"));
         }
 
         static void ApplyCategory(string category, out GitEventType type, out Color tint)
@@ -305,31 +288,6 @@ namespace Gitmos
             if (!string.IsNullOrWhiteSpace(fallback))
                 return fallback.Trim();
             return empty;
-        }
-
-        [Serializable]
-        class PointBatch
-        {
-            public PointDto[] points;
-        }
-
-        [Serializable]
-        class PointDto
-        {
-            public string id;
-            public string label;
-            public string series;
-            public string category;
-            public float latitude;
-            public float longitude;
-            public string place;
-            public bool hasLocation;
-            public float targetLatitude;
-            public float targetLongitude;
-            public string targetPlace;
-            public bool hasTarget;
-            public float value;
-            public float secondary;
         }
     }
 }
