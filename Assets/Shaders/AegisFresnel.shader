@@ -1,4 +1,4 @@
-Shader "Gitmos/Fresnel"
+Shader "Aegis/Fresnel"
 {
     Properties
     {

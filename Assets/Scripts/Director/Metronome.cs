@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Gitmos
+namespace Aegis
 {
     [DefaultExecutionOrder(-20)]
     public class Metronome : MonoBehaviour

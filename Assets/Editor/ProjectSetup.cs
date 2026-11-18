@@ -8,7 +8,7 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.UIElements;
 
-namespace Gitmos.Editor
+namespace Aegis.Editor
 {
     [InitializeOnLoad]
     public static class ProjectSetup
@@ -24,7 +24,7 @@ namespace Gitmos.Editor
             EditorApplication.update += EnterPlayWhenReady;
         }
 
-        [MenuItem("Gitmos/Build Lobby Scene")]
+        [MenuItem("Aegis/Build Lobby Scene")]
         public static void Build()
         {
             Directory.CreateDirectory("Assets/Settings");
@@ -40,16 +40,16 @@ namespace Gitmos.Editor
             if (font == null)
                 throw new InvalidOperationException("IBM Plex Mono failed to import.");
 
-            var theme = AssetDatabase.LoadAssetAtPath<ThemeStyleSheet>("Assets/UI/GitmosTheme.tss");
+            var theme = AssetDatabase.LoadAssetAtPath<ThemeStyleSheet>("Assets/UI/AegisTheme.tss");
             var tree = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UI/Dashboard.uxml");
             if (tree == null)
                 throw new InvalidOperationException("Dashboard UXML failed to import.");
 
-            Shader fresnel = RequireShader("Gitmos/Fresnel");
-            Shader additive = RequireShader("Gitmos/Additive");
-            Shader screen = RequireShader("Gitmos/Screen");
-            Shader stability = RequireShader("Gitmos/Stability");
-            Shader halo = RequireShader("Gitmos/Halo");
+            Shader fresnel = RequireShader("Aegis/Fresnel");
+            Shader additive = RequireShader("Aegis/Additive");
+            Shader screen = RequireShader("Aegis/Screen");
+            Shader stability = RequireShader("Aegis/Stability");
+            Shader halo = RequireShader("Aegis/Halo");
 
             var panel = ScriptableObject.CreateInstance<PanelSettings>();
             panel.scaleMode = PanelScaleMode.ScaleWithScreenSize;
@@ -57,7 +57,7 @@ namespace Gitmos.Editor
             panel.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight;
             panel.match = 0.5f;
             panel.themeStyleSheet = theme;
-            ReplaceAsset("Assets/Settings/GitmosPanel.asset", panel);
+            ReplaceAsset("Assets/Settings/AegisPanel.asset", panel);
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
@@ -93,6 +93,9 @@ namespace Gitmos.Editor
             globe.fresnelShader = fresnel;
             globe.additiveShader = additive;
             globe.haloShader = halo;
+            globe.earthTexture = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/earth-night.jpg");
+            if (globe.earthTexture == null)
+                throw new InvalidOperationException("Earth texture failed to import.");
             var barcode = CreateStage<ActivityBarcode>("Barcode", stageRoot.transform);
             barcode.screenShader = screen;
             var scan = CreateStage<ScanBurst>("Scan", stageRoot.transform);
@@ -134,10 +137,10 @@ namespace Gitmos.Editor
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             AssetDatabase.SaveAssets();
-            Debug.Log("Gitmos lobby scene built.");
+            Log.Info("Lobby scene built.");
         }
 
-        [MenuItem("Gitmos/Play")]
+        [MenuItem("Aegis/Play")]
         public static void Play()
         {
             EditorApplication.update -= EnterPlayWhenReady;
@@ -152,7 +155,7 @@ namespace Gitmos.Editor
             if (EditorSceneManager.GetActiveScene().path != ScenePath)
                 EditorSceneManager.OpenScene(ScenePath);
             FocusGameView();
-            Debug.Log("Gitmos entering play.");
+            Log.Info("Entering play mode.");
             if (!EditorApplication.isPlaying)
                 EditorApplication.EnterPlaymode();
         }
@@ -170,7 +173,7 @@ namespace Gitmos.Editor
         public static void BuildAndVerify()
         {
             Build();
-            EditorPrefs.SetBool("Gitmos.Verify", true);
+            EditorPrefs.SetBool("Aegis.Verify", true);
             EditorApplication.update -= Pump;
             EditorApplication.update += Pump;
             pumpStarted = EditorApplication.timeSinceStartup;
@@ -188,7 +191,7 @@ namespace Gitmos.Editor
 
             if (EditorApplication.timeSinceStartup - pumpStarted > 150)
             {
-                Debug.LogError("Gitmos verification timed out.");
+                Log.Error("Verification timed out.");
                 EditorApplication.update -= Pump;
                 EditorApplication.Exit(1);
                 return;
@@ -225,7 +228,7 @@ namespace Gitmos.Editor
             string path = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "playback-report.txt"));
             if (!File.Exists(path))
             {
-                Debug.LogError("Gitmos verification did not write a report.");
+                Log.Error("Verification did not write a report.");
                 EditorApplication.Exit(1);
                 return;
             }
@@ -252,7 +255,7 @@ namespace Gitmos.Editor
 
         static UniversalRenderPipelineAsset EnsurePipeline()
         {
-            var existing = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>("Assets/Settings/GitmosURP.asset");
+            var existing = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>("Assets/Settings/AegisURP.asset");
             if (existing != null)
                 return existing;
 
@@ -262,23 +265,23 @@ namespace Gitmos.Editor
                 throw new InvalidOperationException("URP post-process data was not imported.");
 
             var renderer = ScriptableObject.CreateInstance<UniversalRendererData>();
-            renderer.name = "GitmosRenderer";
+            renderer.name = "AegisRenderer";
             renderer.postProcessData = post;
             ResourceReloader.ReloadAllNullIn(renderer, UniversalRenderPipelineAsset.packagePath);
-            ReplaceAsset("Assets/Settings/GitmosRenderer.asset", renderer);
+            ReplaceAsset("Assets/Settings/AegisRenderer.asset", renderer);
 
             var pipeline = UniversalRenderPipelineAsset.Create(renderer);
-            pipeline.name = "GitmosURP";
+            pipeline.name = "AegisURP";
             ResourceReloader.ReloadAllNullIn(pipeline, UniversalRenderPipelineAsset.packagePath);
-            ReplaceAsset("Assets/Settings/GitmosURP.asset", pipeline);
+            ReplaceAsset("Assets/Settings/AegisURP.asset", pipeline);
             return pipeline;
         }
 
         static VolumeProfile CreateVolumeProfile()
         {
-            ReplaceAsset("Assets/Settings/GitmosVolume.asset", null);
+            ReplaceAsset("Assets/Settings/AegisVolume.asset", null);
             var profile = ScriptableObject.CreateInstance<VolumeProfile>();
-            AssetDatabase.CreateAsset(profile, "Assets/Settings/GitmosVolume.asset");
+            AssetDatabase.CreateAsset(profile, "Assets/Settings/AegisVolume.asset");
 
             Bloom bloom = profile.Add<Bloom>(true);
             bloom.threshold.Override(0.28f);
@@ -320,7 +323,7 @@ namespace Gitmos.Editor
             }
             catch (Exception error)
             {
-                Debug.LogWarning("URP global settings were not created explicitly. " + error.Message);
+                Log.Warn("URP global settings were not created explicitly. " + error.Message);
             }
         }
     }

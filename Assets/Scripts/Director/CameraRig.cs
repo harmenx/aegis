@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-namespace Gitmos
+namespace Aegis
 {
     [DefaultExecutionOrder(-30)]
     public class CameraRig : MonoBehaviour

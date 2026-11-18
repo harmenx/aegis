@@ -1,0 +1,36 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,shader,hlsl,cginc}]
+indent_style = space
+indent_size = 4
+
+# C# conventions this codebase already follows.
+[*.cs]
+csharp_new_line_before_open_brace = all
+csharp_prefer_braces = when_multiline:suggestion
+dotnet_sort_system_directives_first = true
+csharp_style_var_for_built_in_types = false:suggestion
+
+[*.{uxml,uss,tss,json,asmdef,yml,yaml}]
+indent_style = space
+indent_size = 2
+
+[*.{uxml,uss,tss}]
+indent_size = 4
+
+[*.asmdef]
+indent_size = 4
+
+[*.md]
+trim_trailing_whitespace = false
+
+# Unity-serialised files: leave them as Unity writes them.
+[*.{unity,asset,prefab,mat,meta}]
+trim_trailing_whitespace = false
+insert_final_newline = false

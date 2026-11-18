@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Gitmos
+namespace Aegis
 {
     public class ScanBurst : StageBase
     {
@@ -106,9 +106,9 @@ namespace Gitmos
         void Build()
         {
             if (screenShader == null)
-                screenShader = Shader.Find("Gitmos/Screen");
+                screenShader = Shader.Find("Aegis/Screen");
             if (additiveShader == null)
-                additiveShader = Shader.Find("Gitmos/Additive");
+                additiveShader = Shader.Find("Aegis/Additive");
 
             pixels = new Color32[Width * Height];
             texture = new Texture2D(Width, Height, TextureFormat.RGBA32, false)

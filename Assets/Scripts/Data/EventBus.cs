@@ -1,6 +1,6 @@
 using System;
 
-namespace Gitmos
+namespace Aegis
 {
     public static class EventBus
     {
